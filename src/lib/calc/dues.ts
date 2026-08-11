@@ -27,11 +27,18 @@ export interface MonthDuesResult {
 /**
  * Pure calculation, no DB access. Throws Error on invalid/impossible input.
  *
+ * Auctioned-month formula (confirmed against real committee data - the winner
+ * is NOT exempt from that month's group discount, they just also receive the
+ * auction payout on top):
+ *   pool = winningBid - runnerUpBonus
+ *   share = floor(pool / memberCount)   -- everyone's baseline discount, winner included
+ *   runner-up additionally gets `runnerUpBonus` off, on top of their share
+ *
  * Contract: `memberIds` must be passed in a STABLE order (e.g. members.sortOrder
- * ascending). When the discount pool doesn't divide evenly across the "other"
- * members, the leftover 1-rupee increments are assigned to the FIRST `remainder`
- * entries of the (winner/runnerUp-excluded) subsequence of `memberIds`, in the
- * order given. This is deterministic and depended on by tests/callers.
+ * ascending). When `pool` doesn't divide evenly across all members, the leftover
+ * 1-rupee increments are assigned to the FIRST `remainder` entries of
+ * `memberIds`, in the order given. This is deterministic and depended on by
+ * tests/callers.
  */
 export function computeMonthDues(
   terms: CommitteeTerms,
@@ -77,6 +84,11 @@ export function computeMonthDues(
 
   const { winningBid, runnerUpMemberId } = auction;
 
+  if (memberCount < 2) {
+    throw new Error(
+      "memberCount must be at least 2 for an auctioned month (a winner and a runner-up)"
+    );
+  }
   if (runnerUpMemberId === null) {
     throw new Error("Auctioned month requires a runnerUpMemberId");
   }
@@ -98,53 +110,33 @@ export function computeMonthDues(
   if (winningBid < runnerUpBonus) {
     throw new Error("winningBid must be at least the runnerUpBonus");
   }
-  if (runnerUpBonus >= monthlyContribution) {
-    throw new Error("runnerUpBonus must be less than monthlyContribution");
-  }
 
-  const others = memberIds.filter(
-    (id) => id !== auction.winnerMemberId && id !== runnerUpMemberId
-  );
-  if (others.length <= 0) {
-    throw new Error(
-      "memberCount must be at least 3 for an auctioned month (winner, runner-up, and at least one other member)"
-    );
-  }
+  const pool = winningBid - runnerUpBonus;
+  const share = Math.floor(pool / memberCount);
+  const remainder = pool - share * memberCount;
 
-  const remainingPool = winningBid - runnerUpBonus;
-  const share = Math.floor(remainingPool / others.length);
-  const remainder = remainingPool - share * others.length;
-
-  if (monthlyContribution - share < 0) {
-    throw new Error(
-      "Computed discount exceeds monthlyContribution for one or more members"
-    );
-  }
-
-  const perMember: MemberDue[] = memberIds.map((memberId) => {
-    if (memberId === auction.winnerMemberId) {
-      return { memberId, amountOwed: monthlyContribution, role: "winner" };
-    }
-    if (memberId === runnerUpMemberId) {
-      return {
-        memberId,
-        amountOwed: monthlyContribution - runnerUpBonus,
-        role: "runnerUp",
-      };
-    }
-    const otherIndex = others.indexOf(memberId);
-    const extraRupeeOff = otherIndex < remainder ? 1 : 0;
-    const amountOwed = monthlyContribution - share - extraRupeeOff;
+  const perMember: MemberDue[] = memberIds.map((memberId, index) => {
+    const extraRupeeOff = index < remainder ? 1 : 0;
+    const role: MemberDue["role"] =
+      memberId === auction.winnerMemberId
+        ? "winner"
+        : memberId === runnerUpMemberId
+          ? "runnerUp"
+          : "other";
+    const discount = share + extraRupeeOff + (role === "runnerUp" ? runnerUpBonus : 0);
+    const amountOwed = monthlyContribution - discount;
     if (amountOwed < 0) {
       throw new Error(
-        `Computed a negative amountOwed for member ${memberId}`
+        `Computed a negative amountOwed for member ${memberId} - winningBid too large relative to monthlyContribution/memberCount`
       );
     }
-    return { memberId, amountOwed, role: "other" };
+    return { memberId, amountOwed, role };
   });
 
   const payoutToWinner = pot - winningBid;
-  const winnerAmountOwed = monthlyContribution;
+  const winnerAmountOwed = perMember.find(
+    (d) => d.memberId === auction.winnerMemberId
+  )!.amountOwed;
 
   return {
     pot,
