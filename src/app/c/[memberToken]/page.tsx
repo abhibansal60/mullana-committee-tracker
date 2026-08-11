@@ -7,6 +7,7 @@ import {
 } from "@/lib/db/queries";
 import { formatRupees } from "@/lib/money";
 import Stamp from "@/components/Stamp";
+import ProfitLossSummary from "@/components/ProfitLossSummary";
 
 export default async function MemberDashboardPage({
   params,
@@ -102,6 +103,11 @@ export default async function MemberDashboardPage({
           ))}
         </ul>
       </section>
+
+      <ProfitLossSummary
+        monthlyContribution={committee.monthlyContribution}
+        months={monthsSummary}
+      />
     </div>
   );
 }
