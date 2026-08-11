@@ -39,3 +39,11 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# QA tooling (scripts/qa/setup.sh installs these; kept out of the app's
+# own dependency tree and node_modules)
+/scripts/qa/node_modules
+/scripts/qa/.libs
+/scripts/qa/.debs
+/scripts/qa/env.sh
+/scripts/qa/package-lock.json

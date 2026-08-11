@@ -1,0 +1,8 @@
+{
+  "name": "mct-qa-tools",
+  "private": true,
+  "description": "Isolated from the app's own package.json on purpose - Playwright is QA tooling, not a runtime or build dependency.",
+  "dependencies": {
+    "playwright": "^1.62.1"
+  }
+}
