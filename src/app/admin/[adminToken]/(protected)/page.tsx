@@ -33,6 +33,12 @@ export default async function AdminDashboardPage({
     }
   }
 
+  const recordedMonths = monthsSummary.filter((m) => m.auctionRecordedAt);
+  const totalNetGain = recordedMonths.reduce(
+    (sum, m) => sum + (m.winnerNetGain ?? 0),
+    0
+  );
+
   return (
     <div className="mx-auto max-w-lg space-y-8 px-5 py-8">
       <section className="card p-5">
@@ -105,6 +111,49 @@ export default async function AdminDashboardPage({
             </li>
           ))}
         </ul>
+      </section>
+
+      <section>
+        <div className="mb-2 flex items-center gap-2 px-1">
+          <h2 className="eyebrow">Profit &amp; loss</h2>
+          <Stamp tone="muted">Holder only</Stamp>
+        </div>
+
+        <div className="card p-5">
+          <span className="eyebrow">Distributed to winners so far</span>
+          <p className="money mt-1 text-2xl font-medium">
+            {formatRupees(totalNetGain)}
+          </p>
+          <p className="mt-1.5 text-xs text-[var(--muted)]">
+            Net gain = the payout a month&rsquo;s winner receives, minus what
+            they still owed that month. Not shown on the read-only link.
+          </p>
+        </div>
+
+        {recordedMonths.length > 0 && (
+          <ul className="card mt-3 divide-y divide-[var(--border-subtle)] px-4">
+            {recordedMonths.map((m) => (
+              <li
+                key={m.id}
+                className="flex items-center justify-between gap-3 py-3 text-sm"
+              >
+                <span>
+                  Month {m.monthNumber}
+                  {m.winnerName && (
+                    <span className="block text-xs text-[var(--muted)]">
+                      {m.winnerName}
+                    </span>
+                  )}
+                </span>
+                <span className="money font-medium text-[var(--cloth)]">
+                  {m.winnerNetGain != null
+                    ? `+${formatRupees(m.winnerNetGain)}`
+                    : "—"}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
     </div>
   );

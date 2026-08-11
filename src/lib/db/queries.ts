@@ -346,6 +346,9 @@ export interface MonthSummary {
   collectedCount: number;
   totalCount: number;
   fullyCollected: boolean;
+  /** Holder-only figure: what the winner nets that month (payout minus what
+   * they still owe). Never surface this on the member-facing (/c/) pages. */
+  winnerNetGain: number | null;
 }
 
 export async function getMonthsSummary(
@@ -376,6 +379,7 @@ export async function getMonthsSummary(
         collectedCount: 0,
         totalCount: committee.memberCount,
         fullyCollected: false,
+        winnerNetGain: null,
       });
       continue;
     }
@@ -398,6 +402,7 @@ export async function getMonthsSummary(
       collectedCount,
       totalCount: committee.memberCount,
       fullyCollected: collectedCount === committee.memberCount,
+      winnerNetGain: detail.dues?.winnerNetGain ?? null,
     });
   }
 
