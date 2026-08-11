@@ -4,7 +4,8 @@ import { requireAdminByToken } from "@/lib/auth/guard";
 import { getMonthDetail, getEligibleAuctionMembers } from "@/lib/db/queries";
 import { formatRupees } from "@/lib/money";
 import AuctionForm from "@/components/admin/AuctionForm";
-import PaymentForm from "@/components/admin/PaymentForm";
+import PaymentsSection from "@/components/admin/PaymentsSection";
+import Stamp from "@/components/Stamp";
 
 export default async function AdminMonthDetailPage({
   params,
@@ -18,22 +19,21 @@ export default async function AdminMonthDetailPage({
   if (!detail || detail.committee.id !== committee.id) notFound();
 
   return (
-    <div className="mx-auto max-w-lg p-6 space-y-6">
-      <Link href={`/admin/${adminToken}`} className="text-sm text-neutral-500">
+    <div className="mx-auto max-w-lg space-y-6 px-5 py-8">
+      <Link
+        href={`/admin/${adminToken}`}
+        className="text-sm text-[var(--muted)] hover:text-[var(--foreground)]"
+      >
         ← Back
       </Link>
 
       <div>
-        <h1 className="text-lg font-semibold">
+        <h1 className="flex items-center gap-2 font-[family-name:var(--font-display)] text-2xl font-semibold">
           Month {detail.month.monthNumber}
-          {detail.isReserved && (
-            <span className="ml-2 text-sm font-normal text-neutral-400">
-              Reserved
-            </span>
-          )}
+          {detail.isReserved && <Stamp tone="muted">Reserved</Stamp>}
         </h1>
         {detail.dues && (
-          <p className="text-sm text-neutral-500 mt-1">
+          <p className="money mt-1.5 text-sm text-[var(--muted)]">
             Pot {formatRupees(detail.dues.pot)} · Payout to winner{" "}
             {formatRupees(detail.dues.payoutToWinner)}
           </p>
@@ -48,20 +48,14 @@ export default async function AdminMonthDetailPage({
         />
       ) : (
         <div>
-          <h2 className="text-sm font-medium text-neutral-500 mb-2">
-            Payments
-          </h2>
-          <div>
-            {detail.members.map((m) => (
-              <PaymentForm key={m.memberId} monthId={monthId} member={m} />
-            ))}
-          </div>
+          <h2 className="eyebrow mb-2 px-1">Payments</h2>
+          <PaymentsSection monthId={monthId} members={detail.members} />
 
-          <details className="mt-4">
-            <summary className="text-xs text-neutral-500 cursor-pointer">
+          <details className="mt-5">
+            <summary className="cursor-pointer text-xs font-medium text-[var(--muted)] hover:text-[var(--foreground)]">
               Edit auction result
             </summary>
-            <div className="mt-2">
+            <div className="mt-3">
               <AuctionForm
                 monthId={monthId}
                 isReservedMonth={detail.isReserved}

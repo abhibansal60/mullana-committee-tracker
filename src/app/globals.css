@@ -1,32 +1,192 @@
 @import "tailwindcss";
 
+/*
+ * Token system: "The Passbook" — a bound accounts ledger a committee holder
+ * would once have kept by hand. Paper for surfaces, cloth-cover green for
+ * structure/brand, ink-stamp red and brass for the two things that get
+ * stamped onto a real passbook page: a status, and a payout.
+ */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --ink: #1a2e22;
+  --paper: #f2eee2;
+  --surface: #faf8f1;
+  --border-subtle: #e1dac6;
+  --border-strong: #c9c0a6;
+  --muted: #6b6152;
+
+  --cloth: #2f5233;
+  --cloth-strong: #223e26;
+  --cloth-tint: #2f523314;
+
+  --stamp: #b23a2e;
+  --stamp-tint: #b23a2e1a;
+
+  --brass: #93712a;
+  --brass-tint: #93712a1a;
+
+  --carbon: #3b5b7a;
+  --carbon-tint: #3b5b7a1a;
+
+  /* The book cover: a fixed dark-cloth surface (header bars, the bare
+     landing page, the PIN gate) that reads the same regardless of the
+     surrounding light/dark theme — a cover doesn't change color with the
+     room lighting. */
+  --spine: #24401f;
+  --spine-strong: #1a2f17;
+  --spine-foreground: #f2eee2;
+  --spine-muted: #c9c0a6;
+  --spine-border: #3c4f42;
+  --spine-danger: #e2685a;
+  --spine-danger-tint: #e2685a22;
+
+  --background: var(--paper);
+  --foreground: var(--ink);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ink: #ede7d8;
+    --paper: #141f19;
+    --surface: #1b2921;
+    --border-subtle: #2a3a30;
+    --border-strong: #3c4f42;
+    --muted: #a39c8a;
+
+    --cloth: #7fb98b;
+    --cloth-strong: #98cca3;
+    --cloth-tint: #7fb98b1f;
+
+    --stamp: #e2685a;
+    --stamp-tint: #e2685a22;
+
+    --brass: #d4af6a;
+    --brass-tint: #d4af6a22;
+
+    --carbon: #86aedb;
+    --carbon-tint: #86aedb22;
+
+    --background: var(--paper);
+    --foreground: var(--ink);
+  }
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-surface: var(--surface);
+  --color-border-subtle: var(--border-subtle);
+  --color-border-strong: var(--border-strong);
+  --color-muted: var(--muted);
+
+  --color-cloth: var(--cloth);
+  --color-cloth-strong: var(--cloth-strong);
+  --color-cloth-tint: var(--cloth-tint);
+
+  --color-stamp: var(--stamp);
+  --color-stamp-tint: var(--stamp-tint);
+
+  --color-brass: var(--brass);
+  --color-brass-tint: var(--brass-tint);
+
+  --color-carbon: var(--carbon);
+  --color-carbon-tint: var(--carbon-tint);
+
+  --color-spine: var(--spine);
+  --color-spine-strong: var(--spine-strong);
+  --color-spine-foreground: var(--spine-foreground);
+  --color-spine-muted: var(--spine-muted);
+  --color-spine-border: var(--spine-border);
+  --color-spine-danger: var(--spine-danger);
+  --color-spine-danger-tint: var(--spine-danger-tint);
+
+  --font-display: var(--font-fraunces);
+  --font-sans: var(--font-plex-sans);
+  --font-mono: var(--font-plex-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  border-color: var(--border-subtle);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
+::selection {
+  background: var(--brass-tint);
+  color: var(--foreground);
+}
+
+:focus-visible {
+  outline: 2px solid var(--cloth);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 @layer components {
+  /* Ledger paper ruling — a faint horizontal rule every line, like a cash
+     book. Used sparingly behind rows that carry money figures. */
+  .bg-ledger-rules {
+    background-image: repeating-linear-gradient(
+      to bottom,
+      transparent,
+      transparent 2.74rem,
+      var(--border-subtle) 2.74rem,
+      var(--border-subtle) calc(2.74rem + 1px)
+    );
+  }
+
+  .field-label {
+    @apply block text-xs font-medium uppercase tracking-wide text-[var(--muted)] mb-1.5;
+  }
+
   .input {
-    @apply w-full rounded-md border border-neutral-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-neutral-900 dark:border-neutral-700 dark:bg-neutral-900;
+    @apply w-full rounded-md border border-[var(--border-strong)] bg-[var(--surface)] px-3 py-2.5 text-[15px] text-[var(--foreground)] outline-none transition-colors placeholder:text-[var(--muted)] focus-visible:border-[var(--cloth)];
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-md px-4 py-2.5 text-sm font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none bg-[var(--cloth)] text-[var(--paper)] hover:bg-[var(--cloth-strong)];
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 rounded-md px-4 py-2.5 text-sm font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none border border-[var(--border-strong)] bg-transparent text-[var(--foreground)] hover:bg-[var(--surface)];
+  }
+
+  .btn-danger {
+    @apply inline-flex items-center justify-center gap-2 rounded-md px-4 py-2.5 text-sm font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none border border-[var(--stamp)] text-[var(--stamp)] bg-transparent hover:bg-[var(--stamp-tint)];
+  }
+
+  .card {
+    @apply rounded-lg border border-[var(--border-subtle)] bg-[var(--surface)];
+  }
+
+  .money {
+    font-family: var(--font-mono), ui-monospace, monospace;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
+  }
+
+  .eyebrow {
+    @apply text-xs font-semibold uppercase tracking-[0.08em] text-[var(--muted)];
+  }
+
+  /* Ledger margin rule: a vertical rule near the left edge of a row,
+     echoing the ruled index column of an accounts-book page. Kept neutral
+     so the red ink stays reserved for stamps, not decoration. */
+  .ledger-row {
+    @apply relative border-l-2 border-[var(--border-strong)] pl-3;
   }
 }

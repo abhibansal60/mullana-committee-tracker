@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { requireMemberByToken } from "@/lib/auth/guard";
+import Stamp from "@/components/Stamp";
 
 export default async function MemberLayout({
   children,
@@ -13,14 +14,15 @@ export default async function MemberLayout({
 
   return (
     <div className="min-h-full flex flex-col">
-      <header className="border-b border-neutral-200 dark:border-neutral-800">
-        <div className="mx-auto max-w-lg px-6 py-3 flex items-center justify-between">
-          <Link href={`/c/${memberToken}`} className="font-medium text-sm">
+      <header className="border-b border-[var(--border-subtle)]">
+        <div className="mx-auto flex max-w-lg items-center justify-between px-5 py-3.5">
+          <Link
+            href={`/c/${memberToken}`}
+            className="font-[family-name:var(--font-display)] text-[15px] font-semibold"
+          >
             {committee.name}
           </Link>
-          <span className="text-xs rounded-full border border-neutral-300 px-2 py-0.5 text-neutral-500">
-            Read-only
-          </span>
+          <Stamp tone="muted">Read-only</Stamp>
         </div>
       </header>
       <main className="flex-1">{children}</main>

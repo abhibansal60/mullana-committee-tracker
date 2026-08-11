@@ -6,6 +6,7 @@ import {
   getMonthsSummary,
 } from "@/lib/db/queries";
 import { formatRupees } from "@/lib/money";
+import Stamp from "@/components/Stamp";
 
 export default async function MemberDashboardPage({
   params,
@@ -33,36 +34,33 @@ export default async function MemberDashboardPage({
   }
 
   return (
-    <div className="mx-auto max-w-lg p-6 space-y-8">
-      <section>
-        <h1 className="text-lg font-semibold mb-1">{committee.name}</h1>
-        <p className="text-sm text-neutral-500">
+    <div className="mx-auto max-w-lg space-y-8 px-5 py-8">
+      <section className="card p-5">
+        <span className="eyebrow">{committee.name}</span>
+        <p className="money mt-1 text-3xl font-medium">
+          {formatRupees(committee.monthlyContribution * committee.memberCount)}
+        </p>
+        <p className="mt-1.5 text-sm text-[var(--muted)]">
           {formatRupees(committee.monthlyContribution)}/month ×{" "}
-          {committee.memberCount} members · pot{" "}
-          {formatRupees(committee.monthlyContribution * committee.memberCount)}{" "}
-          · {committee.durationMonths} months
+          {committee.memberCount} members · {committee.durationMonths} months
         </p>
       </section>
 
       <section>
-        <h2 className="text-sm font-medium text-neutral-500 mb-2">Members</h2>
-        <ul className="divide-y divide-neutral-100 dark:divide-neutral-900 rounded-lg border border-neutral-200 dark:border-neutral-800">
+        <h2 className="eyebrow mb-2 px-1">Members</h2>
+        <ul className="card divide-y divide-[var(--border-subtle)] px-4">
           {members.map((m) => {
             const wonMonth = wonMonthByMemberId.get(m.id);
             return (
               <li
                 key={m.id}
-                className="flex items-center justify-between px-3 py-2 text-sm"
+                className="flex items-center justify-between gap-3 py-3 text-sm"
               >
-                <span>
+                <span className="flex items-center gap-2">
                   {m.name}
-                  {m.isHolder && (
-                    <span className="ml-2 text-xs text-neutral-400">
-                      Holder
-                    </span>
-                  )}
+                  {m.isHolder && <Stamp tone="muted">Holder</Stamp>}
                 </span>
-                <span className="text-xs text-neutral-500">
+                <span className="money text-xs text-[var(--muted)]">
                   {wonMonth ? `Won month ${wonMonth}` : "Not yet won"}
                 </span>
               </li>
@@ -72,36 +70,32 @@ export default async function MemberDashboardPage({
       </section>
 
       <section>
-        <h2 className="text-sm font-medium text-neutral-500 mb-2">
-          Monthly log
-        </h2>
-        <ul className="divide-y divide-neutral-100 dark:divide-neutral-900 rounded-lg border border-neutral-200 dark:border-neutral-800">
+        <h2 className="eyebrow mb-2 px-1">Monthly log</h2>
+        <ul className="card divide-y divide-[var(--border-subtle)] px-4">
           {monthsSummary.map((m) => (
             <li key={m.id}>
               <Link
                 href={`/c/${memberToken}/months/${m.id}`}
-                className="flex items-center justify-between px-3 py-2 text-sm hover:bg-neutral-50 dark:hover:bg-neutral-900"
+                className="-mx-4 flex items-center justify-between gap-3 px-4 py-3 text-sm hover:bg-[var(--background)]"
               >
                 <span>
-                  Month {m.monthNumber}
-                  {m.isReserved && (
-                    <span className="ml-2 text-xs text-neutral-400">
-                      Reserved
-                    </span>
-                  )}
+                  <span className="flex items-center gap-2">
+                    Month {m.monthNumber}
+                    {m.isReserved && <Stamp tone="muted">Reserved</Stamp>}
+                  </span>
                   {m.winnerName && (
-                    <span className="block text-xs text-neutral-500">
+                    <span className="money mt-0.5 block text-xs text-[var(--muted)]">
                       Won by {m.winnerName}
                       {m.winningBid ? ` · bid ${formatRupees(m.winningBid)}` : ""}
                     </span>
                   )}
                 </span>
-                <span className="text-xs text-neutral-500">
+                <span className="money shrink-0 text-xs text-[var(--muted)]">
                   {!m.auctionRecordedAt
                     ? "Pending auction"
                     : m.fullyCollected
                       ? "Fully collected"
-                      : `Collecting ${m.collectedCount}/${m.totalCount}`}
+                      : `${m.collectedCount}/${m.totalCount}`}
                 </span>
               </Link>
             </li>

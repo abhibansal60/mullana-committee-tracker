@@ -48,17 +48,21 @@ export default function AuctionForm({
 
   if (isReservedMonth) {
     return (
-      <div className="rounded-lg border border-neutral-200 dark:border-neutral-800 p-4">
-        <p className="text-sm text-neutral-600 mb-3">
-          This is the holder&apos;s reserved month - no auction needed.
+      <div className="card p-4">
+        <p className="mb-3 text-sm text-[var(--muted)]">
+          This is the holder&apos;s reserved month &mdash; no auction needed.
         </p>
-        {error && <p className="text-sm text-red-600 mb-2">{error}</p>}
+        {error && (
+          <p className="mb-3 rounded-md border border-[var(--stamp)] bg-[var(--stamp-tint)] p-2.5 text-sm text-[var(--stamp)]">
+            {error}
+          </p>
+        )}
         <button
           disabled={submitting}
           onClick={() => submit({ isReserved: true })}
-          className="rounded-md bg-neutral-900 text-white px-4 py-2 text-sm disabled:opacity-50"
+          className="btn-primary"
         >
-          {submitting ? "Saving..." : "Confirm reserved month"}
+          {submitting ? "Saving…" : "Confirm reserved month"}
         </button>
       </div>
     );
@@ -83,12 +87,12 @@ export default function AuctionForm({
           winningBid,
         });
       }}
-      className="rounded-lg border border-neutral-200 dark:border-neutral-800 p-4 space-y-3"
+      className="card space-y-3 p-4"
     >
-      <h3 className="text-sm font-medium">Record auction result</h3>
+      <h3 className="eyebrow">Record auction result</h3>
 
       <label className="block">
-        <span className="block text-xs font-medium mb-1">Winner</span>
+        <span className="field-label">Winner</span>
         <select
           required
           value={winnerMemberId}
@@ -105,7 +109,7 @@ export default function AuctionForm({
       </label>
 
       <label className="block">
-        <span className="block text-xs font-medium mb-1">Runner-up</span>
+        <span className="field-label">Runner-up</span>
         <select
           required
           value={runnerUpMemberId}
@@ -122,9 +126,7 @@ export default function AuctionForm({
       </label>
 
       <label className="block">
-        <span className="block text-xs font-medium mb-1">
-          Winning bid (₹, multiple of 500)
-        </span>
+        <span className="field-label">Winning bid (₹, multiple of 500)</span>
         <input
           type="number"
           required
@@ -132,18 +134,18 @@ export default function AuctionForm({
           min={500}
           value={winningBid}
           onChange={(e) => setWinningBid(Number(e.target.value))}
-          className="input"
+          className="input money"
         />
       </label>
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && (
+        <p className="rounded-md border border-[var(--stamp)] bg-[var(--stamp-tint)] p-2.5 text-sm text-[var(--stamp)]">
+          {error}
+        </p>
+      )}
 
-      <button
-        type="submit"
-        disabled={submitting}
-        className="rounded-md bg-neutral-900 text-white px-4 py-2 text-sm disabled:opacity-50"
-      >
-        {submitting ? "Saving..." : "Save auction result"}
+      <button type="submit" disabled={submitting} className="btn-primary w-full">
+        {submitting ? "Saving…" : "Save auction result"}
       </button>
     </form>
   );

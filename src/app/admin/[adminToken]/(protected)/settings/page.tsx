@@ -12,8 +12,11 @@ export default async function SettingsPage({
   const reservedMonthLocked = await hasAnyAuctionRecorded(committee.id);
 
   return (
-    <div className="mx-auto max-w-lg p-6">
-      <h1 className="text-lg font-semibold mb-6">Settings</h1>
+    <div className="mx-auto max-w-lg px-5 py-8">
+      <span className="eyebrow">Committee</span>
+      <h1 className="mt-1.5 mb-6 font-[family-name:var(--font-display)] text-2xl font-semibold">
+        Settings
+      </h1>
       <SettingsForm
         adminToken={adminToken}
         name={committee.name}

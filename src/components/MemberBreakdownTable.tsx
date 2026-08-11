@@ -1,12 +1,7 @@
 import { formatRupees } from "@/lib/money";
 import StatusBadge from "./StatusBadge";
+import Stamp from "./Stamp";
 import type { MemberMonthView } from "@/lib/db/queries";
-
-const ROLE_LABELS: Record<MemberMonthView["role"], string> = {
-  winner: "Winner",
-  runnerUp: "Runner-up (+₹1,000 off)",
-  other: "",
-};
 
 export default function MemberBreakdownTable({
   members,
@@ -16,52 +11,39 @@ export default function MemberBreakdownTable({
   runnerUpBonus: number;
 }) {
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-sm border-collapse">
-        <thead>
-          <tr className="text-left text-neutral-500 border-b border-neutral-200 dark:border-neutral-800">
-            <th className="py-2 pr-2 font-medium">Member</th>
-            <th className="py-2 pr-2 font-medium">Owed</th>
-            <th className="py-2 pr-2 font-medium">Paid</th>
-            <th className="py-2 pr-2 font-medium">Mode</th>
-            <th className="py-2 font-medium">Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          {members.map((m) => (
-            <tr
-              key={m.memberId}
-              className="border-b border-neutral-100 dark:border-neutral-900"
-            >
-              <td className="py-2 pr-2">
-                <div>{m.memberName}</div>
-                {m.role !== "other" && (
-                  <div className="text-xs text-neutral-500">
-                    {m.role === "runnerUp"
-                      ? `Runner-up (+₹${runnerUpBonus.toLocaleString("en-IN")} off)`
-                      : ROLE_LABELS[m.role]}
-                  </div>
+    <ul className="divide-y divide-[var(--border-subtle)]">
+      {members.map((m) => (
+        <li key={m.memberId} className="ledger-row py-3">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-sm font-medium">{m.memberName}</span>
+                {m.role === "winner" && <Stamp tone="brass">Won</Stamp>}
+                {m.role === "runnerUp" && (
+                  <Stamp tone="carbon">
+                    Runner-up &middot; &minus;{formatRupees(runnerUpBonus)}
+                  </Stamp>
                 )}
-              </td>
-              <td className="py-2 pr-2">{formatRupees(m.amountOwed)}</td>
-              <td className="py-2 pr-2">{formatRupees(m.amountPaid)}</td>
-              <td className="py-2 pr-2 text-neutral-500">
-                {m.payments.length === 0
-                  ? "-"
-                  : m.payments
-                      .map(
-                        (p) =>
-                          `${p.mode === "cash" ? "Cash" : "UPI"} ${formatRupees(p.amount)}`
-                      )
-                      .join(" + ")}
-              </td>
-              <td className="py-2">
-                <StatusBadge status={m.status} />
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+              </div>
+              <p className="money mt-1 text-[13px] text-[var(--muted)]">
+                Owed {formatRupees(m.amountOwed)} &middot; Paid{" "}
+                {formatRupees(m.amountPaid)}
+              </p>
+              {m.payments.length > 0 && (
+                <p className="money mt-0.5 text-[13px] text-[var(--muted)]">
+                  {m.payments
+                    .map(
+                      (p) =>
+                        `${p.mode === "cash" ? "Cash" : "UPI"} ${formatRupees(p.amount)}`
+                    )
+                    .join(" + ")}
+                </p>
+              )}
+            </div>
+            <StatusBadge status={m.status} />
+          </div>
+        </li>
+      ))}
+    </ul>
   );
 }

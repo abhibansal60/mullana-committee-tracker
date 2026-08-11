@@ -12,7 +12,7 @@ export default function LogoutButton({ adminToken }: { adminToken: string }) {
   }
 
   return (
-    <button onClick={handleLogout} className="text-neutral-500">
+    <button onClick={handleLogout} className="hover:text-[#f2eee2]">
       Log out
     </button>
   );

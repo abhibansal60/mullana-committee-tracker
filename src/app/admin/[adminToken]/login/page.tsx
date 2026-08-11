@@ -39,28 +39,39 @@ export default function AdminLoginPage({
   }
 
   return (
-    <main className="mx-auto max-w-xs p-6 pt-24">
-      <h1 className="text-lg font-semibold mb-4">Enter admin PIN</h1>
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <input
-          type="password"
-          inputMode="numeric"
-          autoFocus
-          required
-          value={pin}
-          onChange={(e) => setPin(e.target.value)}
-          className="input text-center text-lg tracking-widest"
-          placeholder="••••"
-        />
-        {error && <p className="text-sm text-red-600">{error}</p>}
-        <button
-          type="submit"
-          disabled={submitting}
-          className="w-full rounded-md bg-neutral-900 text-white py-2 text-sm disabled:opacity-50"
-        >
-          {submitting ? "Checking..." : "Unlock"}
-        </button>
-      </form>
+    <main className="flex flex-1 flex-col items-center justify-center bg-spine px-6 py-16">
+      <div className="w-full max-w-xs">
+        <span className="block text-center font-mono text-xs font-semibold uppercase tracking-[0.08em] text-spine-muted">
+          Admin
+        </span>
+        <h1 className="mt-1.5 text-center font-[family-name:var(--font-display)] text-2xl font-semibold text-spine-foreground">
+          Enter your PIN
+        </h1>
+        <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+          <input
+            type="password"
+            inputMode="numeric"
+            autoFocus
+            required
+            value={pin}
+            onChange={(e) => setPin(e.target.value)}
+            className="w-full rounded-md border border-spine-border bg-spine-strong px-3 py-3 text-center text-2xl tracking-[0.5em] text-spine-foreground outline-none focus-visible:border-[var(--cloth)]"
+            placeholder="••••"
+          />
+          {error && (
+            <p className="rounded-md border border-spine-danger bg-spine-danger-tint p-2.5 text-center text-sm text-spine-danger">
+              {error}
+            </p>
+          )}
+          <button
+            type="submit"
+            disabled={submitting}
+            className="w-full rounded-md bg-spine-foreground py-2.5 text-sm font-medium text-spine transition-colors hover:opacity-90 disabled:opacity-50"
+          >
+            {submitting ? "Checking…" : "Unlock"}
+          </button>
+        </form>
+      </div>
     </main>
   );
 }

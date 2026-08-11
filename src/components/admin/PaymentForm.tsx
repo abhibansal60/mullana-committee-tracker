@@ -9,9 +9,15 @@ import type { MemberMonthView } from "@/lib/db/queries";
 export default function PaymentForm({
   monthId,
   member,
+  selectable = false,
+  selected = false,
+  onToggleSelect,
 }: {
   monthId: string;
   member: MemberMonthView;
+  selectable?: boolean;
+  selected?: boolean;
+  onToggleSelect?: () => void;
 }) {
   const router = useRouter();
   const [amount, setAmount] = useState(member.amountOwed - member.amountPaid);
@@ -54,24 +60,36 @@ export default function PaymentForm({
   }
 
   return (
-    <div className="border-b border-neutral-100 dark:border-neutral-900 py-3">
-      <div className="flex items-center justify-between mb-2">
-        <div>
-          <span className="text-sm font-medium">{member.memberName}</span>
-          <span className="text-xs text-neutral-500 ml-2">
-            owed {formatRupees(member.amountOwed)} · paid{" "}
-            {formatRupees(member.amountPaid)}
-          </span>
+    <div className="ledger-row py-3.5">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-start gap-2.5">
+          <input
+            type="checkbox"
+            checked={selected}
+            onChange={onToggleSelect}
+            disabled={!selectable}
+            aria-label={`Select ${member.memberName} for bulk payment`}
+            className={`mt-0.5 h-4 w-4 shrink-0 accent-[var(--cloth)] ${
+              selectable ? "" : "invisible"
+            }`}
+          />
+          <div>
+            <span className="text-sm font-medium">{member.memberName}</span>
+            <p className="money mt-0.5 text-xs text-[var(--muted)]">
+              owed {formatRupees(member.amountOwed)} · paid{" "}
+              {formatRupees(member.amountPaid)}
+            </p>
+          </div>
         </div>
         <StatusBadge status={member.status} />
       </div>
 
       {member.payments.length > 0 && (
-        <ul className="mb-2 space-y-1">
+        <ul className="mt-2 space-y-1">
           {member.payments.map((p) => (
             <li
               key={p.id}
-              className="flex items-center justify-between text-xs text-neutral-600"
+              className="money flex items-center justify-between text-xs text-[var(--muted)]"
             >
               <span>
                 {p.mode === "cash" ? "Cash" : "UPI"} {formatRupees(p.amount)}
@@ -80,23 +98,23 @@ export default function PaymentForm({
                 type="button"
                 onClick={() => removePayment(p.id)}
                 disabled={deletingId === p.id}
-                className="text-neutral-400 hover:text-red-600"
+                className="font-sans font-medium text-[var(--muted)] hover:text-[var(--stamp)]"
               >
-                {deletingId === p.id ? "Removing..." : "Remove"}
+                {deletingId === p.id ? "Removing…" : "Remove"}
               </button>
             </li>
           ))}
         </ul>
       )}
 
-      <form onSubmit={addPayment} className="flex items-center gap-2">
+      <form onSubmit={addPayment} className="mt-2.5 flex items-center gap-2">
         <input
           type="number"
           required
           min={1}
           value={amount}
           onChange={(e) => setAmount(Number(e.target.value))}
-          className="input w-28"
+          className="input money w-28"
         />
         <select
           value={mode}
@@ -109,12 +127,14 @@ export default function PaymentForm({
         <button
           type="submit"
           disabled={submitting}
-          className="rounded-md bg-neutral-900 text-white px-3 py-2 text-xs disabled:opacity-50"
+          className="btn-primary shrink-0 px-3.5 py-2.5 text-xs"
         >
-          {submitting ? "Adding..." : "Add"}
+          {submitting ? "Adding…" : "Add"}
         </button>
       </form>
-      {error && <p className="text-xs text-red-600 mt-1">{error}</p>}
+      {error && (
+        <p className="mt-1.5 text-xs text-[var(--stamp)]">{error}</p>
+      )}
     </div>
   );
 }

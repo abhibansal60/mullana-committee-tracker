@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Stamp from "@/components/Stamp";
 
 export default function SettingsForm({
   adminToken,
@@ -90,12 +91,12 @@ export default function SettingsForm({
   }
 
   return (
-    <div className="space-y-10">
-      <form onSubmit={saveGeneral} className="space-y-4">
-        <h2 className="text-sm font-medium text-neutral-500">General</h2>
+    <div className="space-y-8">
+      <form onSubmit={saveGeneral} className="card space-y-4 p-4">
+        <h2 className="eyebrow">General</h2>
 
         <label className="block">
-          <span className="block text-xs font-medium mb-1">Committee name</span>
+          <span className="field-label">Committee name</span>
           <input
             type="text"
             required
@@ -106,23 +107,19 @@ export default function SettingsForm({
         </label>
 
         <label className="block">
-          <span className="block text-xs font-medium mb-1">
-            Runner-up bonus (₹)
-          </span>
+          <span className="field-label">Runner-up bonus (₹)</span>
           <input
             type="number"
             required
             min={0}
             value={runnerUpBonus}
             onChange={(e) => setRunnerUpBonus(Number(e.target.value))}
-            className="input"
+            className="input money"
           />
         </label>
 
         <label className="block">
-          <span className="block text-xs font-medium mb-1">
-            Reserved month #
-          </span>
+          <span className="field-label">Reserved month #</span>
           <input
             type="number"
             required
@@ -131,34 +128,37 @@ export default function SettingsForm({
             disabled={reservedMonthLocked}
             value={reservedMonthNumber}
             onChange={(e) => setReservedMonthNumber(Number(e.target.value))}
-            className="input disabled:opacity-50"
+            className="input money disabled:opacity-50"
           />
           {reservedMonthLocked && (
-            <span className="block text-xs text-neutral-500 mt-1">
-              Locked - an auction has already been recorded for this
+            <span className="mt-1.5 block text-xs text-[var(--muted)]">
+              Locked &mdash; an auction has already been recorded for this
               committee.
             </span>
           )}
         </label>
 
-        {generalError && <p className="text-sm text-red-600">{generalError}</p>}
+        {generalError && (
+          <p className="rounded-md border border-[var(--stamp)] bg-[var(--stamp-tint)] p-2.5 text-sm text-[var(--stamp)]">
+            {generalError}
+          </p>
+        )}
         {generalSaved && (
-          <p className="text-sm text-green-600">Saved.</p>
+          <p className="flex items-center gap-2 text-sm text-[var(--cloth)]">
+            <Stamp tone="cloth">Saved</Stamp>
+          </p>
         )}
 
-        <button
-          type="submit"
-          className="rounded-md bg-neutral-900 text-white px-4 py-2 text-sm"
-        >
+        <button type="submit" className="btn-primary">
           Save
         </button>
       </form>
 
-      <form onSubmit={changePin} className="space-y-4">
-        <h2 className="text-sm font-medium text-neutral-500">Change PIN</h2>
+      <form onSubmit={changePin} className="card space-y-4 p-4">
+        <h2 className="eyebrow">Change PIN</h2>
 
         <label className="block">
-          <span className="block text-xs font-medium mb-1">Current PIN</span>
+          <span className="field-label">Current PIN</span>
           <input
             type="password"
             inputMode="numeric"
@@ -170,7 +170,7 @@ export default function SettingsForm({
         </label>
 
         <label className="block">
-          <span className="block text-xs font-medium mb-1">New PIN</span>
+          <span className="field-label">New PIN</span>
           <input
             type="password"
             inputMode="numeric"
@@ -182,39 +182,42 @@ export default function SettingsForm({
           />
         </label>
 
-        {pinError && <p className="text-sm text-red-600">{pinError}</p>}
-        {pinSaved && <p className="text-sm text-green-600">PIN changed.</p>}
+        {pinError && (
+          <p className="rounded-md border border-[var(--stamp)] bg-[var(--stamp-tint)] p-2.5 text-sm text-[var(--stamp)]">
+            {pinError}
+          </p>
+        )}
+        {pinSaved && (
+          <p className="flex items-center gap-2 text-sm">
+            <Stamp tone="cloth">PIN changed</Stamp>
+          </p>
+        )}
 
-        <button
-          type="submit"
-          className="rounded-md bg-neutral-900 text-white px-4 py-2 text-sm"
-        >
+        <button type="submit" className="btn-primary">
           Change PIN
         </button>
       </form>
 
-      <div className="space-y-3">
-        <h2 className="text-sm font-medium text-neutral-500">
-          Read-only link
-        </h2>
-        <p className="text-sm text-neutral-600">
-          If the shared link has leaked, regenerate it - the old link will
-          stop working immediately.
+      <div className="card space-y-3 p-4">
+        <h2 className="eyebrow">Read-only link</h2>
+        <p className="text-sm text-[var(--muted)]">
+          If the shared link has leaked, regenerate it &mdash; the old link
+          will stop working immediately.
         </p>
         <button
           type="button"
           onClick={regenerateMemberLink}
           disabled={regenerating}
-          className="rounded-md border border-neutral-300 px-4 py-2 text-sm disabled:opacity-50"
+          className="btn-secondary"
         >
-          {regenerating ? "Regenerating..." : "Regenerate read-only link"}
+          {regenerating ? "Regenerating…" : "Regenerate read-only link"}
         </button>
         {newMemberLink && (
-          <div className="rounded-md border border-amber-300 bg-amber-50 p-3">
-            <p className="text-xs font-medium mb-1">
-              New link - share this with members now:
+          <div className="rounded-md border border-[var(--stamp)] bg-[var(--stamp-tint)] p-3">
+            <p className="mb-1.5 text-xs font-medium text-[var(--stamp)]">
+              New link &mdash; share this with members now
             </p>
-            <code className="block break-all text-xs bg-white rounded p-2 border">
+            <code className="money block break-all rounded border border-[var(--border-subtle)] bg-[var(--surface)] p-2 text-xs">
               {newMemberLink}
             </code>
           </div>
