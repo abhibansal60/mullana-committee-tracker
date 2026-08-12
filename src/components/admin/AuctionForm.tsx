@@ -18,6 +18,9 @@ export default function AuctionForm({
   eligibleMembers: EligibleMember[];
 }) {
   const router = useRouter();
+  const membersByName = [...eligibleMembers].sort((a, b) =>
+    a.name.localeCompare(b.name)
+  );
   const [winnerMemberId, setWinnerMemberId] = useState("");
   const [runnerUpMemberId, setRunnerUpMemberId] = useState("");
   const [winningBid, setWinningBid] = useState(15000);
@@ -100,7 +103,7 @@ export default function AuctionForm({
           className="input"
         >
           <option value="">Select member</option>
-          {eligibleMembers.map((m) => (
+          {membersByName.map((m) => (
             <option key={m.id} value={m.id}>
               {m.name}
             </option>
@@ -117,7 +120,7 @@ export default function AuctionForm({
           className="input"
         >
           <option value="">Select member</option>
-          {eligibleMembers.map((m) => (
+          {membersByName.map((m) => (
             <option key={m.id} value={m.id}>
               {m.name}
             </option>

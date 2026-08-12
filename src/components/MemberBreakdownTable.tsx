@@ -10,9 +10,13 @@ export default function MemberBreakdownTable({
   members: MemberMonthView[];
   runnerUpBonus: number;
 }) {
+  const membersByName = [...members].sort((a, b) =>
+    a.memberName.localeCompare(b.memberName)
+  );
+
   return (
     <ul className="divide-y divide-[var(--border-subtle)]">
-      {members.map((m) => (
+      {membersByName.map((m) => (
         <li key={m.memberId} className="ledger-row py-3">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">

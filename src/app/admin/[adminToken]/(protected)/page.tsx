@@ -34,6 +34,8 @@ export default async function AdminDashboardPage({
     }
   }
 
+  const membersByName = [...members].sort((a, b) => a.name.localeCompare(b.name));
+
   return (
     <div className="mx-auto max-w-lg space-y-8 px-5 py-8">
       <section className="card p-5">
@@ -50,7 +52,7 @@ export default async function AdminDashboardPage({
       <section>
         <h2 className="eyebrow mb-2 px-1">Members</h2>
         <ul className="card divide-y divide-[var(--border-subtle)] px-4">
-          {members.map((m) => {
+          {membersByName.map((m) => {
             const wonMonth = wonMonthByMemberId.get(m.id);
             return (
               <li

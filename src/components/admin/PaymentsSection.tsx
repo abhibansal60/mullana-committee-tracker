@@ -19,8 +19,12 @@ export default function PaymentsSection({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const membersByName = [...members].sort((a, b) =>
+    a.memberName.localeCompare(b.memberName)
+  );
+
   const remaining = (m: MemberMonthView) => m.amountOwed - m.amountPaid;
-  const selectableMembers = members.filter((m) => remaining(m) > 0);
+  const selectableMembers = membersByName.filter((m) => remaining(m) > 0);
   const allSelected =
     selectableMembers.length > 0 &&
     selectableMembers.every((m) => selected.has(m.memberId));
@@ -130,7 +134,7 @@ export default function PaymentsSection({
       )}
 
       <div className="card divide-y divide-[var(--border-subtle)] px-4">
-        {members.map((m) => (
+        {membersByName.map((m) => (
           <PaymentForm
             key={m.memberId}
             monthId={monthId}

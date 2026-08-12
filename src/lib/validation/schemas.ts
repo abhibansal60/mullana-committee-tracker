@@ -58,6 +58,7 @@ export const updateSettingsSchema = z.object({
   name: z.string().trim().min(1).max(100).optional(),
   runnerUpBonus: z.number().int().nonnegative().optional(),
   reservedMonthNumber: z.number().int().positive().optional(),
+  showProfitLoss: z.boolean().optional(),
 });
 
 export const changePinSchema = z.object({
