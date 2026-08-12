@@ -421,7 +421,6 @@ export async function updateCommitteeSettings(
     name: string;
     runnerUpBonus: number;
     reservedMonthNumber: number;
-    showProfitLoss: boolean;
     adminPinHash: string;
   }>
 ): Promise<void> {

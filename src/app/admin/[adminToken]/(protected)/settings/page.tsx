@@ -24,7 +24,6 @@ export default async function SettingsPage({
         reservedMonthNumber={committee.reservedMonthNumber}
         durationMonths={committee.durationMonths}
         reservedMonthLocked={reservedMonthLocked}
-        showProfitLoss={committee.showProfitLoss}
       />
     </div>
   );

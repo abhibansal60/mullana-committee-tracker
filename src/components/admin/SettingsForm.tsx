@@ -11,7 +11,6 @@ export default function SettingsForm({
   reservedMonthNumber: initialReservedMonthNumber,
   durationMonths,
   reservedMonthLocked,
-  showProfitLoss: initialShowProfitLoss,
 }: {
   adminToken: string;
   name: string;
@@ -19,7 +18,6 @@ export default function SettingsForm({
   reservedMonthNumber: number;
   durationMonths: number;
   reservedMonthLocked: boolean;
-  showProfitLoss: boolean;
 }) {
   const router = useRouter();
 
@@ -28,7 +26,6 @@ export default function SettingsForm({
   const [reservedMonthNumber, setReservedMonthNumber] = useState(
     initialReservedMonthNumber
   );
-  const [showProfitLoss, setShowProfitLoss] = useState(initialShowProfitLoss);
   const [generalError, setGeneralError] = useState<string | null>(null);
   const [generalSaved, setGeneralSaved] = useState(false);
 
@@ -47,12 +44,7 @@ export default function SettingsForm({
     const res = await fetch(`/api/committees/${adminToken}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name,
-        runnerUpBonus,
-        reservedMonthNumber,
-        showProfitLoss,
-      }),
+      body: JSON.stringify({ name, runnerUpBonus, reservedMonthNumber }),
     });
     const data = await res.json();
     if (!res.ok) {
@@ -144,18 +136,6 @@ export default function SettingsForm({
               committee.
             </span>
           )}
-        </label>
-
-        <label className="flex items-center gap-2.5">
-          <input
-            type="checkbox"
-            checked={showProfitLoss}
-            onChange={(e) => setShowProfitLoss(e.target.checked)}
-            className="h-4 w-4"
-          />
-          <span className="field-label mb-0">
-            Show profit &amp; loss to members
-          </span>
         </label>
 
         {generalError && (

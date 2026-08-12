@@ -25,7 +25,6 @@ export const committees = pgTable(
     durationMonths: integer("duration_months").notNull(),
     reservedMonthNumber: integer("reserved_month_number").notNull(),
     runnerUpBonus: integer("runner_up_bonus").notNull().default(1000), // rupees
-    showProfitLoss: boolean("show_profit_loss").notNull().default(true),
     adminTokenHash: text("admin_token_hash").notNull(),
     memberTokenHash: text("member_token_hash").notNull(),
     adminPinHash: text("admin_pin_hash").notNull(),
