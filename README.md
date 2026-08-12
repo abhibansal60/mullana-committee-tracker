@@ -69,10 +69,8 @@ flow in v1).
 2. Push this repo to GitHub, import it into Vercel.
 3. Set `DATABASE_URL`, `AUTH_SECRET`, `SETUP_PASSPHRASE` in the Vercel
    project's environment variables.
-4. Migrations run automatically as part of `npm run build` (`drizzle-kit
-   migrate` runs before `next build`), so a Vercel deploy applies any pending
-   schema changes before the new code goes live - no manual migration step
-   needed.
+4. Run `npm run db:migrate` against the production `DATABASE_URL` (or apply
+   migrations as part of the build step) before first use.
 5. Visit `/new` on the deployed URL to create the real committee.
 
 ## Out of scope for v1
