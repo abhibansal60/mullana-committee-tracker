@@ -63,6 +63,16 @@ Save both immediately; the admin link is not shown again (though it can be
 recovered by anyone with database access - there's no "forgot admin link"
 flow in v1).
 
+### Short links
+
+`/go/admin` and `/go/member` redirect to whatever URLs are set in the
+`GO_ADMIN_URL` and `GO_MEMBER_URL` environment variables (unset by default -
+each responds 404 until configured). Set these in Vercel's environment
+variables to the full admin/member links for your committee, redeploy, and
+share `https://<your-domain>/go/admin` / `/go/member` instead of the long
+tokenized URLs. Keep `GO_ADMIN_URL` as private as the admin link itself - it
+grants the same access.
+
 ## Deploying
 
 1. Create a Neon project for production, grab its connection string.
