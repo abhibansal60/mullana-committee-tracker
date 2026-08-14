@@ -106,10 +106,12 @@ export default async function MemberDashboardPage({
         </ul>
       </section>
 
-      <ProfitLossSummary
-        monthlyContribution={committee.monthlyContribution}
-        months={monthsSummary}
-      />
+      {committee.showProfitLoss && (
+        <ProfitLossSummary
+          monthlyContribution={committee.monthlyContribution}
+          months={monthsSummary}
+        />
+      )}
     </div>
   );
 }
