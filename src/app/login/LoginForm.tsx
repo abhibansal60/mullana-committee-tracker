@@ -83,11 +83,11 @@ export default function LoginForm({
       {googleHref && (
         <>
           <GoogleButton href={googleHref} />
-          <p className="text-center text-xs tracking-[0.16em] text-[var(--arena-muted)] uppercase">or use your number</p>
+          <p className="text-center text-xs tracking-[0.18em] text-[var(--arena-muted)] uppercase">or use your number</p>
         </>
       )}
       <label className="block">
-        <span className="mb-2 block text-xs font-semibold tracking-[0.16em] text-[var(--arena-muted)] uppercase">
+        <span className="mb-2 block text-xs font-semibold tracking-[0.18em] text-[var(--arena-muted)] uppercase">
           Your WhatsApp number
         </span>
         <div className="flex items-center overflow-hidden rounded-2xl border border-[var(--arena-line)] bg-[var(--arena)] focus-within:border-[var(--gold)]">

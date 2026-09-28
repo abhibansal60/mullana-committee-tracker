@@ -90,7 +90,7 @@ export default async function PlayHomePage({ searchParams }: PageProps<"/play">)
         )}
 
         {practice && (
-          <div className="rounded-xl border border-dashed border-[#8e6cf0] bg-[#8e6cf0]/10 px-4 py-3 text-sm">
+          <div className="rounded-xl border border-dashed border-[var(--practice)] bg-[var(--practice-tint)] px-4 py-3 text-sm">
             <p className="font-semibold">🧪 You&apos;re in the practice room</p>
             <p className="mt-0.5 text-[var(--muted)]">Bids and results here are pretend — play around!</p>
           </div>
@@ -106,13 +106,13 @@ export default async function PlayHomePage({ searchParams }: PageProps<"/play">)
           initial={{
             status: session?.status ?? null,
             monthNumber: sessionMonthNumber,
-            here: 0,
+            here: null,
           }}
         />
 
         {/* Hero: who I am in this committee */}
-        <section className="arena-bg overflow-hidden rounded-2xl p-5 shadow-lg">
-          <p className="text-xs font-semibold tracking-[0.2em] text-[var(--gold)] uppercase">Namaste</p>
+        <section className="arena-bg arena-panel p-5">
+          <p className="text-xs font-semibold tracking-[0.18em] text-[var(--gold)] uppercase">Namaste</p>
           <h1 className="mt-1 font-[family-name:var(--font-display)] text-3xl font-semibold">{firstName}</h1>
           {member.isHolder ? (
             <p className="mt-2 text-sm text-[var(--arena-muted)]">

@@ -42,6 +42,13 @@
   --background: var(--paper);
   --foreground: var(--ink);
 
+  /* Practice room: the one "this is pretend" colour, used on every surface
+     that belongs to the throwaway copy. */
+  --practice: #6b4fd6;
+  --practice-tint: #6b4fd61f;
+  --practice-arena: #8e6cf0; /* on the always-dark stage */
+  --practice-arena-text: #cbbcff;
+
   /* The auction hall: the live room is a stage, always dark regardless of
      theme (like the book cover). Night-green cloth, lamp-lit brass for the
      money, ember for the burning fuse, and a bright "won" green. */
@@ -78,6 +85,9 @@
     --carbon: #86aedb;
     --carbon-tint: #86aedb22;
 
+    --practice: #b9a4ff;
+    --practice-tint: #b9a4ff22;
+
     --background: var(--paper);
     --foreground: var(--ink);
   }
@@ -111,6 +121,9 @@
   --color-spine-border: var(--spine-border);
   --color-spine-danger: var(--spine-danger);
   --color-spine-danger-tint: var(--spine-danger-tint);
+
+  --color-practice: var(--practice);
+  --color-practice-tint: var(--practice-tint);
 
   --color-arena: var(--arena);
   --color-arena-raised: var(--arena-raised);
@@ -223,6 +236,13 @@ body {
       radial-gradient(80% 50% at 50% 110%, #3a2a0d55 0%, transparent 70%),
       var(--arena);
     color: var(--arena-text);
+  }
+
+  /* A window onto the stage, set into a passbook page (home hero, live
+     banner, committee-day card): same corner radius as .card, plus an edge
+     so it doesn't melt into the dark theme's page. */
+  .arena-panel {
+    @apply overflow-hidden rounded-lg border border-[var(--arena-line)] shadow-lg;
   }
 
   .arena-card {

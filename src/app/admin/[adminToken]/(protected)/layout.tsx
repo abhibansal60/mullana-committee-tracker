@@ -47,7 +47,7 @@ export default async function ProtectedAdminLayout({
         </div>
       </header>
       {isPracticeCommittee(committee) && (
-        <div className="bg-[#8e6cf0]/15 px-5 py-2 text-center text-xs font-semibold text-[#6b4fd6] dark:text-[#cbbcff]">
+        <div className="bg-[var(--practice-tint)] px-5 py-2 text-center text-xs font-semibold text-[var(--practice)]">
           🧪 Practice copy — nothing here affects the real committee
         </div>
       )}

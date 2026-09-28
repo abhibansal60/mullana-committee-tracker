@@ -626,6 +626,10 @@ export async function runHostAction(committee: Committee, input: HostAction): Pr
       if (!runnerUpId) throw new LiveError("Pick the runner-up - only one person bid");
       if (runnerUpId === s.leaderMemberId) throw new LiveError("Runner-up can't be the winner");
 
+      // Someone may have recorded this month by hand while the room was open.
+      if (!(await getAuctionableMonths(committee)).some((m) => m.id === s.monthId)) {
+        throw new LiveError("This month's result has already been recorded");
+      }
       const eligible = await getEligibleAuctionMembers(committee.id, s.monthId);
       const eligibleIds = new Set(eligible.map((m) => m.id));
       if (!eligibleIds.has(s.leaderMemberId) || !eligibleIds.has(runnerUpId)) {
@@ -652,12 +656,19 @@ export async function runHostAction(committee: Committee, input: HostAction): Pr
         sql`${auctionSessions.status} = 'closed'`
       );
       if (!claimed) throw new LiveError("The room changed - try again", 409);
-      await recordAuctionResult(s.monthId, {
-        isReserved: false,
-        winnerMemberId: s.leaderMemberId,
-        winningBid: s.currentBid,
-        runnerUpMemberId: runnerUpId,
-      });
+      try {
+        await recordAuctionResult(s.monthId, {
+          isReserved: false,
+          winnerMemberId: s.leaderMemberId,
+          winningBid: s.currentBid,
+          runnerUpMemberId: runnerUpId,
+        });
+      } catch (err) {
+        // Don't leave the room "finalized" with nothing recorded: put it back
+        // so the holder can confirm again.
+        await bumpSession(s.id, { status: "closed" }, sql`${auctionSessions.status} = 'finalized'`);
+        throw err;
+      }
       return;
     }
   }

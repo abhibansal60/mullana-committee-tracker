@@ -41,7 +41,7 @@ export default async function MemberDashboardPage({
     <div className="mx-auto max-w-lg space-y-8 px-5 py-8">
       <Link
         href="/play"
-        className="arena-bg flex items-center justify-between gap-3 rounded-2xl px-5 py-4 shadow-lg"
+        className="arena-bg arena-panel flex items-center justify-between gap-3 px-5 py-4"
       >
         <span>
           <span className="block text-xs font-semibold tracking-[0.18em] text-[var(--gold)] uppercase">

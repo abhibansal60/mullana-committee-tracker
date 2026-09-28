@@ -16,10 +16,10 @@ export default function PracticeBar({
 }) {
   const botCount = state.players.filter((p) => p.bot && (p.eligible || !state.session)).length;
   return (
-    <div className="arena-card mb-4 border-dashed border-[#8e6cf0] p-4">
+    <div className="arena-card mb-4 border-dashed border-[var(--practice-arena)] p-4">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-xs font-bold tracking-[0.2em] text-[#b9a4ff] uppercase">🧪 Practice room</p>
+          <p className="text-xs font-bold tracking-[0.18em] text-[var(--practice-arena-text)] uppercase">🧪 Practice room</p>
           <p className="mt-1 text-sm text-[var(--arena-muted)]">
             A copy of your committee — bids and results here never touch the real one.
           </p>
@@ -37,7 +37,7 @@ export default function PracticeBar({
           type="checkbox"
           checked={bots}
           onChange={(e) => onBotsChange(e.target.checked)}
-          className="h-5 w-5 accent-[#8e6cf0]"
+          className="h-5 w-5 accent-[var(--practice-arena)]"
         />
       </label>
 

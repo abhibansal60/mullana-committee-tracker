@@ -47,9 +47,10 @@ export default function FloatingReactions({
       };
     });
     setFloaters((prev) => [...prev.slice(-30), ...added]);
+    // Not cleared on re-run: `reactions` is a new array on every poll, and
+    // cancelling here would leave these floaters in the DOM forever.
     const keys = new Set(added.map((a) => a.key));
-    const t = setTimeout(() => setFloaters((prev) => prev.filter((f) => !keys.has(f.key))), 3400);
-    return () => clearTimeout(t);
+    setTimeout(() => setFloaters((prev) => prev.filter((f) => !keys.has(f.key))), 3400);
   }, [reactions, nameOf, onNew]);
 
   return (

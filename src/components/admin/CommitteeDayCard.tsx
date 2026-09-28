@@ -39,7 +39,7 @@ export default async function CommitteeDayCard({
   return (
     <Link
       href={`/admin/${adminToken}/live`}
-      className="arena-bg block overflow-hidden rounded-2xl p-5 shadow-lg transition-transform active:scale-[0.99]"
+      className="arena-bg arena-panel block p-5 transition-transform active:scale-[0.99]"
     >
       <span className="flex items-center gap-2 text-xs font-semibold tracking-[0.18em] text-[var(--gold)] uppercase">
         {open && (

@@ -151,15 +151,26 @@ export default function LiveRoom({
   });
 
   // Keep the screen awake while the room is open.
+  // Keyed on a boolean, not the session object: that changes on every poll,
+  // which would release and re-request the lock about once a second.
+  const roomOpen = !!session && session.status !== "finalized";
   useEffect(() => {
-    if (!session || session.status === "finalized") return;
+    if (!roomOpen) return;
+    let gone = false;
     let lock: { release: () => Promise<void> } | null = null;
     const nav = navigator as Navigator & { wakeLock?: { request: (t: "screen") => Promise<{ release: () => Promise<void> }> } };
-    nav.wakeLock?.request("screen").then((l) => (lock = l)).catch(() => {});
+    nav.wakeLock
+      ?.request("screen")
+      .then((l) => {
+        if (gone) l.release().catch(() => {});
+        else lock = l;
+      })
+      .catch(() => {});
     return () => {
+      gone = true;
       lock?.release().catch(() => {});
     };
-  }, [session?.id, session?.status, session]);
+  }, [roomOpen]);
 
   // --- Actions -------------------------------------------------------------
   async function bid(amount: number) {
@@ -306,7 +317,7 @@ export default function LiveRoom({
       </header>
 
       {state.committee.practice && (
-        <div className="bg-[#8e6cf0]/20 py-1.5 text-center text-xs font-semibold tracking-wide text-[#cbbcff]">
+        <div className="bg-[var(--practice-arena)]/20 py-1.5 text-center text-xs font-semibold tracking-wide text-[var(--practice-arena-text)]">
           🧪 PRACTICE ROOM — nothing here is real
         </div>
       )}
@@ -365,7 +376,7 @@ export default function LiveRoom({
               </div>
             )}
 
-            <span className="text-xs font-semibold tracking-[0.2em] text-[var(--arena-muted)] uppercase">
+            <span className="text-xs font-semibold tracking-[0.18em] text-[var(--arena-muted)] uppercase">
               {session.currentBid == null ? "Opening bid" : session.status === "closed" ? "Winning bid" : "Current bid"}
             </span>
             <div key={`${session.currentBid}-${shakeKey}`} className={`${shakeKey ? "animate-shake" : ""}`}>
@@ -557,11 +568,13 @@ function Fuse({
         ? "Clock paused"
         : !hasBids
           ? "Clock starts on the first bid"
-          : phase === "going-twice"
-            ? "Going twice…"
-            : phase === "going-once"
-              ? "Going once…"
-              : "Bidding open";
+          : phase === "sold"
+            ? "Hammer falling…"
+            : phase === "going-twice"
+              ? "Going twice…"
+              : phase === "going-once"
+                ? "Going once…"
+                : "Bidding open";
 
   return (
     <div className="mt-7 w-full max-w-sm">
@@ -702,7 +715,7 @@ function Lobby({
   const s = state.session!;
   return (
     <section className="mt-6 text-center">
-      <p className="text-xs font-semibold tracking-[0.2em] text-[var(--gold)] uppercase">Committee day · Month {s.monthNumber}</p>
+      <p className="text-xs font-semibold tracking-[0.18em] text-[var(--gold)] uppercase">Committee day · Month {s.monthNumber}</p>
       <h1 className="mt-2 font-[family-name:var(--font-display)] text-3xl font-semibold">
         {mode === "host" ? "Your room is open" : meEligible ? "You're in the room" : "Welcome to the room"}
       </h1>
@@ -772,9 +785,9 @@ function Result({ state, mode, homeHref }: { state: LiveState; mode: "player" | 
   const isMe = winner && winner.id === state.me?.memberId;
   return (
     <section className="mt-6 flex flex-col items-center text-center">
-      <p className="text-xs font-semibold tracking-[0.2em] text-[var(--gold)] uppercase">Month {s.monthNumber} · Recorded</p>
+      <p className="text-xs font-semibold tracking-[0.18em] text-[var(--gold)] uppercase">Month {s.monthNumber} · Recorded</p>
       {winner && (
-        <div className="animate-pop-in mt-8">
+        <div className="animate-pop-in mt-14">
           <Avatar name={winner.name} size={96} crown ring />
         </div>
       )}

@@ -123,7 +123,7 @@ export default function HostPanel({
   return (
     <div className="arena-card border-[var(--gold-deep)]/60 p-4">
       <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-xs font-bold tracking-[0.2em] text-[var(--gold)] uppercase">Host controls</h2>
+        <h2 className="text-xs font-bold tracking-[0.18em] text-[var(--gold)] uppercase">Host controls</h2>
         {status && status !== "finalized" && (
           <div className="flex gap-2">
             <button type="button" className="text-xs text-[var(--arena-muted)] underline" onClick={copyRoomLink}>

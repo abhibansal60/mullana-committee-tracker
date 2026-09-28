@@ -82,7 +82,7 @@ function LoginShell({ children }: { children: React.ReactNode }) {
           <span className="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-[var(--arena-raised)] text-3xl shadow-[0_0_40px_#f6c45333]">
             🪙
           </span>
-          <p className="mt-5 text-xs font-semibold tracking-[0.2em] text-[var(--gold)] uppercase">Mullana Committee</p>
+          <p className="mt-5 text-xs font-semibold tracking-[0.18em] text-[var(--gold)] uppercase">Mullana Committee</p>
           <h1 className="mt-2 font-[family-name:var(--font-display)] text-3xl font-semibold">Join your committee</h1>
           <p className="mt-2 text-sm text-[var(--arena-muted)]">
             Bid live on committee day, see what you owe, track the whole year.

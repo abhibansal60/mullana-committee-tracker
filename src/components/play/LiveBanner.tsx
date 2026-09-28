@@ -8,7 +8,7 @@ type Status = "lobby" | "live" | "paused" | "closed" | "finalized" | "cancelled"
 interface Peek {
   status: Status;
   monthNumber: number | null;
-  here: number;
+  here: number | null; // null until the first poll
 }
 
 /** Lights up the home screen the moment the holder opens the auction room. */
@@ -57,7 +57,7 @@ export default function LiveBanner({ initial }: { initial: Peek }) {
     return (
       <Link
         href="/play/live"
-        className="arena-bg flex items-center justify-between gap-3 rounded-2xl px-5 py-4 shadow-lg"
+        className="arena-bg arena-panel flex items-center justify-between gap-3 px-5 py-4"
       >
         <span>
           <span className="block text-xs font-semibold tracking-[0.18em] text-[var(--gold)] uppercase">
@@ -74,14 +74,14 @@ export default function LiveBanner({ initial }: { initial: Peek }) {
   return (
     <Link
       href="/play/live"
-      className="arena-bg group relative block overflow-hidden rounded-2xl px-5 py-5 shadow-[0_10px_40px_-10px_#ff6b3d88]"
+      className="arena-bg arena-panel group relative block px-5 py-5"
     >
       <span className="flex items-center gap-2">
         <span className="animate-live-pulse flex items-center gap-1.5 rounded-full bg-[var(--ember)] px-2 py-0.5 text-[11px] font-bold tracking-wider text-white">
           <span className="h-1.5 w-1.5 rounded-full bg-white" />
           {live ? "LIVE NOW" : peek.status === "lobby" ? "ROOM OPEN" : peek.status === "paused" ? "PAUSED" : "SOLD"}
         </span>
-        <span className="text-xs text-[var(--arena-muted)]">{peek.here} in the room</span>
+        {peek.here != null && <span className="text-xs text-[var(--arena-muted)]">{peek.here} in the room</span>}
       </span>
       <span className="mt-3 block font-[family-name:var(--font-display)] text-2xl font-semibold">
         {live ? `Month ${peek.monthNumber} bidding is on!` : `Committee day — Month ${peek.monthNumber}`}
