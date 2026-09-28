@@ -1,6 +1,6 @@
 # Committee Tracker
 
-A lightweight tracker for a bidding chit fund ("committee"/"kameti") run among
+A lightweight tracker for a bidding chit fund ("committee") run among
 a group of friends: monthly auction results, cash/UPI payment tracking, and a
 per-month ledger. Built for infrequent use (once or twice a month) with two
 access levels - a read-only shared link for members, and a PIN-protected
