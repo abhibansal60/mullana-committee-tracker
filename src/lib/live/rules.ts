@@ -115,7 +115,7 @@ export function defaultLiveSettings(terms: CommitteeTerms): LiveSettingsInput {
       Math.max(minOpeningBid(terms), roundUpToStep(terms.monthlyContribution))
     ),
     bidIncrement: BID_STEP,
-    roundSeconds: 30,
+    roundSeconds: 60,
   };
 }
 

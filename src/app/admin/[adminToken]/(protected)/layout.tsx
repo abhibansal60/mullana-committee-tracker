@@ -15,7 +15,7 @@ export default async function ProtectedAdminLayout({
 
   return (
     <div className="min-h-full flex flex-col">
-      <header className="bg-spine">
+      <header className="border-b border-[var(--gold-deep)]/40 bg-spine">
         <div className="mx-auto flex max-w-lg items-center justify-between gap-3 px-5 py-3.5">
           <Link
             href={`/admin/${adminToken}`}

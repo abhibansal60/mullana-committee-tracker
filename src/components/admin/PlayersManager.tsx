@@ -148,45 +148,37 @@ export default function PlayersManager({
           const phoneDirty = (phones[p.memberId] ?? "") !== (p.phone ?? "");
           return (
             <li key={p.memberId} className="card p-4">
-              <div className="flex items-center gap-3">
-                <Avatar name={p.name} size={38} />
-                <div className="min-w-0 flex-1">
-                  <p className="flex items-center gap-2 text-sm font-medium">
-                    {p.name}
-                    {p.isHolder && <Stamp tone="muted">Holder</Stamp>}
-                  </p>
-                  <p className="truncate text-xs text-[var(--muted)]">
-                    {p.joined ? `Joined${p.email ? ` · ${p.email}` : ""}` : "Not joined yet"}
-                    {p.lastSeenAt ? ` · seen ${since(p.lastSeenAt)}` : ""}
-                  </p>
-                </div>
-                {(p.joined || p.lastLoginAt) && (
-                  <button type="button" className="btn-danger px-3 py-1.5 text-xs" onClick={() => reset(p)} disabled={busy === `reset-${p.memberId}`}>
-                    Reset
-                  </button>
-                )}
-              </div>
-
               <form
-                className="mt-3 flex gap-2"
+                className="flex items-center gap-3"
                 onSubmit={(e) => {
                   e.preventDefault();
                   saveName(p);
                 }}
               >
+                <Avatar name={p.name} size={38} />
                 <input
                   aria-label={`Name for ${p.name}`}
                   value={names[p.memberId] ?? ""}
                   maxLength={100}
                   onChange={(e) => setNames((n) => ({ ...n, [p.memberId]: e.target.value }))}
-                  className="input"
+                  className="min-w-0 flex-1 rounded-md border border-transparent bg-transparent px-2 py-1.5 text-sm font-medium outline-none transition-colors hover:border-[var(--border-strong)] focus-visible:border-[var(--cloth)] focus-visible:bg-[var(--surface)]"
                 />
+                {p.isHolder && <Stamp tone="muted">Holder</Stamp>}
                 {nameDirty && (
-                  <button type="submit" className="btn-primary" disabled={busy === `name-${p.memberId}`}>
+                  <button type="submit" className="btn-primary px-3 py-1.5" disabled={busy === `name-${p.memberId}`}>
                     Save
                   </button>
                 )}
+                {(p.joined || p.lastLoginAt) && !nameDirty && (
+                  <button type="button" className="btn-danger px-3 py-1.5 text-xs" onClick={() => reset(p)} disabled={busy === `reset-${p.memberId}`}>
+                    Reset
+                  </button>
+                )}
               </form>
+              <p className="mt-1 truncate pl-[3.25rem] text-xs text-[var(--muted)]">
+                {p.joined ? `Joined${p.email ? ` · ${p.email}` : ""}` : "Not joined yet"}
+                {p.lastSeenAt ? ` · seen ${since(p.lastSeenAt)}` : ""}
+              </p>
 
               {phoneLogin && (
                 <form

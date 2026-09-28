@@ -70,7 +70,7 @@ export default async function PlayHomePage({ searchParams }: PageProps<"/play">)
 
   return (
     <div className="min-h-dvh pb-16">
-      <header className="bg-spine">
+      <header className="border-b border-[var(--gold-deep)]/40 bg-spine">
         <div className="mx-auto flex max-w-lg items-center justify-between px-5 py-3.5">
           <span className="font-[family-name:var(--font-display)] text-[15px] font-semibold text-spine-foreground">
             {committee.name}

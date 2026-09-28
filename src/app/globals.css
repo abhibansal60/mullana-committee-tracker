@@ -31,11 +31,11 @@
      landing page, the PIN gate) that reads the same regardless of the
      surrounding light/dark theme — a cover doesn't change color with the
      room lighting. */
-  --spine: #24401f;
-  --spine-strong: #1a2f17;
+  --spine: #141b17;
+  --spine-strong: #0d1310;
   --spine-foreground: #f2eee2;
   --spine-muted: #c9c0a6;
-  --spine-border: #3c4f42;
+  --spine-border: #2c3a31;
   --spine-danger: #e2685a;
   --spine-danger-tint: #e2685a22;
 
