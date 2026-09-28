@@ -23,7 +23,7 @@ const plexMono = IBM_Plex_Mono({
 
 export const metadata: Metadata = {
   title: "Committee Tracker",
-  description: "Track monthly committee (kameti) auctions and payments.",
+  description: "Track monthly committee auctions and payments.",
 };
 
 export const viewport: Viewport = {
