@@ -1,13 +1,14 @@
 import Link from "next/link";
 import { requireAdminByToken } from "@/lib/auth/guard";
 import {
+  getCommitteeLedger,
   getMembersForCommittee,
-  getMonthsForCommittee,
-  getMonthsSummary,
+  summarizeLedger,
 } from "@/lib/db/queries";
 import { formatRupees } from "@/lib/money";
 import Stamp from "@/components/Stamp";
 import ProfitLossSummary from "@/components/ProfitLossSummary";
+import CommitteeDayCard from "@/components/admin/CommitteeDayCard";
 
 export default async function AdminDashboardPage({
   params,
@@ -17,11 +18,12 @@ export default async function AdminDashboardPage({
   const { adminToken } = await params;
   const committee = await requireAdminByToken(adminToken);
 
-  const [members, rawMonths, monthsSummary] = await Promise.all([
+  const [members, ledger] = await Promise.all([
     getMembersForCommittee(committee.id),
-    getMonthsForCommittee(committee.id),
-    getMonthsSummary(committee.id),
+    getCommitteeLedger(committee),
   ]);
+  const rawMonths = ledger.map((d) => d.month);
+  const monthsSummary = summarizeLedger(ledger);
 
   const wonMonthByMemberId = new Map<string, number>();
   for (const m of rawMonths) {
@@ -38,6 +40,8 @@ export default async function AdminDashboardPage({
 
   return (
     <div className="mx-auto max-w-lg space-y-8 px-5 py-8">
+      <CommitteeDayCard committee={committee} adminToken={adminToken} />
+
       <section className="card p-5">
         <span className="eyebrow">The pot</span>
         <p className="money mt-1 text-3xl font-medium">

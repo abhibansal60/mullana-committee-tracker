@@ -276,22 +276,17 @@ export interface MonthDetail {
   members: MemberMonthView[]; // empty amountOwed/paid entries until dues is known
 }
 
-export async function getMonthDetail(monthId: string): Promise<MonthDetail | null> {
-  const found = await getMonthByIdWithCommittee(monthId);
-  if (!found) return null;
-  const { month, committee } = found;
-
-  const [allMembers, monthPayments] = await Promise.all([
-    getMembersForCommittee(committee.id),
-    getPaymentsForMonth(monthId),
-  ]);
-
+function buildMonthDetail(
+  committee: Committee,
+  month: Month,
+  allMembers: Member[],
+  monthPayments: Payment[]
+): MonthDetail {
   const holder = allMembers.find((m) => m.isHolder);
   if (!holder) throw new Error(`Committee ${committee.id} has no holder`);
 
   const isReserved = month.monthNumber === committee.reservedMonthNumber;
   const memberIds = allMembers.map((m) => m.id);
-  const nameById = new Map(allMembers.map((m) => [m.id, m.name]));
 
   const paidByMember = new Map<string, Payment[]>();
   for (const p of monthPayments) {
@@ -317,7 +312,7 @@ export async function getMonthDetail(monthId: string): Promise<MonthDetail | nul
     const amountOwed = due?.amountOwed ?? 0;
     return {
       memberId: m.id,
-      memberName: nameById.get(m.id) ?? "Unknown",
+      memberName: m.name,
       role: due?.role ?? "other",
       amountOwed,
       amountPaid,
@@ -336,6 +331,44 @@ export async function getMonthDetail(monthId: string): Promise<MonthDetail | nul
   };
 }
 
+export async function getMonthDetail(monthId: string): Promise<MonthDetail | null> {
+  const found = await getMonthByIdWithCommittee(monthId);
+  if (!found) return null;
+  const { month, committee } = found;
+
+  const [allMembers, monthPayments] = await Promise.all([
+    getMembersForCommittee(committee.id),
+    getPaymentsForMonth(monthId),
+  ]);
+
+  return buildMonthDetail(committee, month, allMembers, monthPayments);
+}
+
+/**
+ * Every month of a committee with dues and payments worked out, in four
+ * queries total (rather than a round of queries per month).
+ */
+export async function getCommitteeLedger(committee: Committee): Promise<MonthDetail[]> {
+  const [monthRows, allMembers, paymentRows] = await Promise.all([
+    getMonthsForCommittee(committee.id),
+    getMembersForCommittee(committee.id),
+    db
+      .select({ payment: payments })
+      .from(payments)
+      .innerJoin(months, eq(payments.monthId, months.id))
+      .where(eq(months.committeeId, committee.id)),
+  ]);
+  const paymentsByMonth = new Map<string, Payment[]>();
+  for (const { payment } of paymentRows) {
+    const list = paymentsByMonth.get(payment.monthId) ?? [];
+    list.push(payment);
+    paymentsByMonth.set(payment.monthId, list);
+  }
+  return monthRows.map((m) =>
+    buildMonthDetail(committee, m, allMembers, paymentsByMonth.get(m.id) ?? [])
+  );
+}
+
 export interface MonthSummary {
   id: string;
   monthNumber: number;
@@ -348,60 +381,46 @@ export interface MonthSummary {
   fullyCollected: boolean;
 }
 
-export async function getMonthsSummary(
-  committeeId: string
-): Promise<MonthSummary[]> {
-  const committee = await getCommitteeById(committeeId);
-  if (!committee) return [];
-
-  const monthRows = await db
-    .select()
-    .from(months)
-    .where(eq(months.committeeId, committeeId))
-    .orderBy(asc(months.monthNumber));
-
-  const allMembers = await getMembersForCommittee(committeeId);
-  const nameById = new Map(allMembers.map((m) => [m.id, m.name]));
-
-  const summaries: MonthSummary[] = [];
-  for (const month of monthRows) {
+export function summarizeLedger(ledger: MonthDetail[]): MonthSummary[] {
+  return ledger.map((detail) => {
+    const { month, committee } = detail;
     if (!month.auctionRecordedAt) {
-      summaries.push({
+      return {
         id: month.id,
         monthNumber: month.monthNumber,
-        isReserved: month.monthNumber === committee.reservedMonthNumber,
+        isReserved: detail.isReserved,
         auctionRecordedAt: null,
         winnerName: null,
         winningBid: null,
         collectedCount: 0,
         totalCount: committee.memberCount,
         fullyCollected: false,
-      });
-      continue;
+      };
     }
-
-    const detail = await getMonthDetail(month.id);
-    if (!detail) continue;
     const collectedCount = detail.members.filter(
       (m) => m.status === "paid" || m.status === "overpaid"
     ).length;
-
     const winnerId = detail.isReserved ? detail.holderMemberId : month.winnerMemberId;
-
-    summaries.push({
+    return {
       id: month.id,
       monthNumber: month.monthNumber,
       isReserved: detail.isReserved,
       auctionRecordedAt: month.auctionRecordedAt,
-      winnerName: winnerId ? nameById.get(winnerId) ?? null : null,
+      winnerName: winnerId
+        ? detail.members.find((m) => m.memberId === winnerId)?.memberName ?? null
+        : null,
       winningBid: month.winningBid,
       collectedCount,
       totalCount: committee.memberCount,
       fullyCollected: collectedCount === committee.memberCount,
-    });
-  }
+    };
+  });
+}
 
-  return summaries;
+export async function getMonthsSummary(committeeId: string): Promise<MonthSummary[]> {
+  const committee = await getCommitteeById(committeeId);
+  if (!committee) return [];
+  return summarizeLedger(await getCommitteeLedger(committee));
 }
 
 // --- Settings ------------------------------------------------------------

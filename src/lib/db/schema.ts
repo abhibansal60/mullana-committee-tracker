@@ -119,6 +119,147 @@ export const payments = pgTable(
   (t) => [index("payments_month_member_idx").on(t.monthId, t.memberId)]
 );
 
+// --- Live auction ("Committee Day") ---------------------------------------
+//
+// Everything the live auction room needs lives in its own tables, so the
+// existing committees/members/months/payments queries never select a column
+// that might not exist yet on a database that hasn't been migrated.
+
+/** Per-member login identity: WhatsApp number + a personal magic-link token. */
+export const memberProfiles = pgTable(
+  "member_profiles",
+  {
+    memberId: uuid("member_id")
+      .primaryKey()
+      .references(() => members.id, { onDelete: "cascade" }),
+    committeeId: uuid("committee_id")
+      .notNull()
+      .references(() => committees.id, { onDelete: "cascade" }),
+    phone: text("phone"), // normalized 10-digit Indian mobile number
+    loginTokenHash: text("login_token_hash"),
+    // Bumped whenever the holder resets this member's access - every login
+    // cookie carries the epoch it was issued under, so old ones stop working.
+    sessionEpoch: integer("session_epoch").notNull().default(0),
+    lastSeenAt: timestamp("last_seen_at", { withTimezone: true }),
+    lastLoginAt: timestamp("last_login_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("member_profiles_login_token_idx").on(t.loginTokenHash),
+    uniqueIndex("member_profiles_committee_phone_idx").on(t.committeeId, t.phone),
+  ]
+);
+
+/** Holder-controlled defaults for the live auction room. */
+export const liveSettings = pgTable("live_settings", {
+  committeeId: uuid("committee_id")
+    .primaryKey()
+    .references(() => committees.id, { onDelete: "cascade" }),
+  openingBid: integer("opening_bid").notNull(), // rupees, multiple of 500
+  bidIncrement: integer("bid_increment").notNull(), // rupees, multiple of 500
+  roundSeconds: integer("round_seconds").notNull(), // countdown after each bid
+  allowPhoneLogin: boolean("allow_phone_login").notNull().default(true),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export const auctionStatusEnum = pgEnum("auction_status", [
+  "lobby", // room open, people joining, no bidding yet
+  "live", // bidding open
+  "paused", // holder froze the clock
+  "closed", // hammer down - waiting for the holder to confirm
+  "finalized", // result written to the month
+  "cancelled",
+]);
+
+export const auctionSessions = pgTable(
+  "auction_sessions",
+  {
+    id: uuid("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    committeeId: uuid("committee_id")
+      .notNull()
+      .references(() => committees.id, { onDelete: "cascade" }),
+    monthId: uuid("month_id")
+      .notNull()
+      .references(() => months.id, { onDelete: "cascade" }),
+    status: auctionStatusEnum("status").notNull().default("lobby"),
+    openingBid: integer("opening_bid").notNull(),
+    bidIncrement: integer("bid_increment").notNull(),
+    roundSeconds: integer("round_seconds").notNull(),
+    currentBid: integer("current_bid"),
+    leaderMemberId: uuid("leader_member_id").references(() => members.id),
+    runnerUpMemberId: uuid("runner_up_member_id").references(() => members.id),
+    bidCount: integer("bid_count").notNull().default(0),
+    version: integer("version").notNull().default(0),
+    startsAt: timestamp("starts_at", { withTimezone: true }), // end of the 3-2-1
+    roundEndsAt: timestamp("round_ends_at", { withTimezone: true }),
+    pausedRemainingMs: integer("paused_remaining_ms"),
+    hostLastSeenAt: timestamp("host_last_seen_at", { withTimezone: true }),
+    closedAt: timestamp("closed_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    index("auction_sessions_committee_idx").on(t.committeeId, t.createdAt),
+    // At most one open room per committee.
+    uniqueIndex("auction_sessions_one_open_idx")
+      .on(t.committeeId)
+      .where(sql`${t.status} in ('lobby', 'live', 'paused', 'closed')`),
+  ]
+);
+
+export const auctionBids = pgTable(
+  "auction_bids",
+  {
+    id: uuid("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    sessionId: uuid("session_id")
+      .notNull()
+      .references(() => auctionSessions.id, { onDelete: "cascade" }),
+    memberId: uuid("member_id")
+      .notNull()
+      .references(() => members.id, { onDelete: "cascade" }),
+    amount: integer("amount").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [index("auction_bids_session_idx").on(t.sessionId, t.createdAt)]
+);
+
+export const auctionReactions = pgTable(
+  "auction_reactions",
+  {
+    id: uuid("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    sessionId: uuid("session_id")
+      .notNull()
+      .references(() => auctionSessions.id, { onDelete: "cascade" }),
+    memberId: uuid("member_id").references(() => members.id, {
+      onDelete: "cascade",
+    }), // null = the holder
+    emoji: text("emoji").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [index("auction_reactions_session_idx").on(t.sessionId, t.createdAt)]
+);
+
 export const committeesRelations = relations(committees, ({ many }) => ({
   members: many(members),
   months: many(months),

@@ -41,6 +41,19 @@
 
   --background: var(--paper);
   --foreground: var(--ink);
+
+  /* The auction hall: the live room is a stage, always dark regardless of
+     theme (like the book cover). Night-green cloth, lamp-lit brass for the
+     money, ember for the burning fuse, and a bright "won" green. */
+  --arena: #0b1710;
+  --arena-raised: #12241a;
+  --arena-line: #244131;
+  --arena-text: #f5efe0;
+  --arena-muted: #9fb1a2;
+  --gold: #f6c453;
+  --gold-deep: #c98d1d;
+  --ember: #ff6b3d;
+  --win: #7be3a1;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -98,6 +111,16 @@
   --color-spine-border: var(--spine-border);
   --color-spine-danger: var(--spine-danger);
   --color-spine-danger-tint: var(--spine-danger-tint);
+
+  --color-arena: var(--arena);
+  --color-arena-raised: var(--arena-raised);
+  --color-arena-line: var(--arena-line);
+  --color-arena-text: var(--arena-text);
+  --color-arena-muted: var(--arena-muted);
+  --color-gold: var(--gold);
+  --color-gold-deep: var(--gold-deep);
+  --color-ember: var(--ember);
+  --color-win: var(--win);
 
   --font-display: var(--font-fraunces);
   --font-sans: var(--font-plex-sans);
@@ -190,3 +213,147 @@ body {
     @apply relative border-l-2 border-[var(--border-strong)] pl-3;
   }
 }
+
+/* --- Live auction room ---------------------------------------------------- */
+
+@layer components {
+  .arena-bg {
+    background:
+      radial-gradient(120% 60% at 50% -10%, #2a4a2f 0%, transparent 60%),
+      radial-gradient(80% 50% at 50% 110%, #3a2a0d55 0%, transparent 70%),
+      var(--arena);
+    color: var(--arena-text);
+  }
+
+  .arena-card {
+    @apply rounded-2xl border border-[var(--arena-line)] bg-[var(--arena-raised)];
+  }
+
+  .gold-text {
+    background: linear-gradient(180deg, #ffe7a3 0%, var(--gold) 45%, var(--gold-deep) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .bid-button {
+    @apply relative w-full overflow-hidden rounded-2xl px-6 py-4 text-left font-semibold text-[#1b1203] transition-transform active:scale-[0.97] disabled:opacity-40 disabled:active:scale-100;
+    background: linear-gradient(180deg, #ffd978 0%, var(--gold) 50%, var(--gold-deep) 100%);
+    box-shadow:
+      0 1px 0 0 #fff4c9 inset,
+      0 -3px 0 0 #00000033 inset,
+      0 10px 30px -10px #f6c45399;
+  }
+  .bid-button::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(100deg, transparent 30%, #ffffff66 50%, transparent 70%);
+    transform: translateX(-120%);
+    animation: shine 2.8s ease-in-out infinite;
+  }
+
+  .chip-button {
+    @apply rounded-xl border border-[var(--arena-line)] bg-[var(--arena-raised)] px-3 py-2.5 text-sm font-semibold text-[var(--arena-text)] transition-transform active:scale-95 disabled:opacity-40;
+  }
+
+  .host-button {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl border border-[var(--arena-line)] bg-[var(--arena-raised)] px-4 py-3 text-sm font-semibold text-[var(--arena-text)] transition active:scale-95 disabled:opacity-40 hover:border-[var(--arena-muted)];
+  }
+  .host-button-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-bold text-[#1b1203] transition active:scale-95 disabled:opacity-40;
+    background: linear-gradient(180deg, #ffd978 0%, var(--gold) 55%, var(--gold-deep) 100%);
+  }
+
+  .arena-input {
+    @apply w-full rounded-xl border border-[var(--arena-line)] bg-[var(--arena)] px-3 py-2.5 text-[15px] text-[var(--arena-text)] outline-none focus-visible:border-[var(--gold)];
+  }
+}
+
+@keyframes shine {
+  0%, 60% { transform: translateX(-120%); }
+  100% { transform: translateX(120%); }
+}
+
+@keyframes pop {
+  0% { transform: scale(1); }
+  30% { transform: scale(1.12); }
+  100% { transform: scale(1); }
+}
+.animate-pop { animation: pop 420ms cubic-bezier(.2,.9,.3,1.4); }
+
+@keyframes pop-in {
+  0% { transform: scale(0.4); opacity: 0; }
+  70% { transform: scale(1.08); opacity: 1; }
+  100% { transform: scale(1); }
+}
+.animate-pop-in { animation: pop-in 380ms cubic-bezier(.2,.9,.3,1.3) both; }
+
+@keyframes float-up {
+  0% { transform: translate(0, 0) scale(0.6); opacity: 0; }
+  10% { opacity: 1; transform: translate(0, -20px) scale(1.1); }
+  100% { transform: translate(var(--drift, 0px), -70vh) scale(1); opacity: 0; }
+}
+.animate-float-up { animation: float-up 3.2s ease-out forwards; }
+
+@keyframes stamp-slam {
+  0% { transform: scale(3) rotate(-18deg); opacity: 0; }
+  55% { transform: scale(0.92) rotate(-8deg); opacity: 1; }
+  75% { transform: scale(1.04) rotate(-9deg); }
+  100% { transform: scale(1) rotate(-8deg); opacity: 1; }
+}
+.animate-stamp-slam { animation: stamp-slam 520ms cubic-bezier(.2,.8,.3,1) both; }
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-6px); }
+  40% { transform: translateX(6px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(4px); }
+}
+.animate-shake { animation: shake 380ms ease-in-out; }
+
+@keyframes countdown {
+  0% { transform: scale(2.4); opacity: 0; }
+  25% { transform: scale(1); opacity: 1; }
+  80% { transform: scale(0.9); opacity: 1; }
+  100% { transform: scale(0.6); opacity: 0; }
+}
+.animate-countdown { animation: countdown 1s ease-out both; }
+
+@keyframes live-pulse {
+  0% { box-shadow: 0 0 0 0 #ff6b3d99; }
+  70% { box-shadow: 0 0 0 10px #ff6b3d00; }
+  100% { box-shadow: 0 0 0 0 #ff6b3d00; }
+}
+.animate-live-pulse { animation: live-pulse 1.6s infinite; }
+
+@keyframes glow {
+  0%, 100% { box-shadow: 0 0 0 2px var(--gold), 0 0 18px 2px #f6c45366; }
+  50% { box-shadow: 0 0 0 2px var(--gold), 0 0 28px 6px #f6c45399; }
+}
+.animate-glow { animation: glow 1.8s ease-in-out infinite; }
+
+@keyframes spark {
+  0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+  50% { transform: translate(-50%, -50%) scale(1.5); opacity: 0.7; }
+}
+.animate-spark { animation: spark 180ms linear infinite; }
+
+@keyframes confetti-fall {
+  0% { transform: translate3d(0, -10vh, 0) rotate(0deg); opacity: 1; }
+  100% { transform: translate3d(var(--drift, 0px), 110vh, 0) rotate(var(--spin, 720deg)); opacity: 0.9; }
+}
+.animate-confetti { animation: confetti-fall var(--dur, 3s) cubic-bezier(.25,.6,.4,1) var(--delay, 0s) forwards; }
+
+@keyframes slide-down {
+  0% { transform: translateY(-120%); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+.animate-slide-down { animation: slide-down 280ms cubic-bezier(.2,.9,.3,1.2) both; }
+
+@keyframes feed-in {
+  0% { transform: translateY(-8px); opacity: 0; background: #f6c45333; }
+  100% { transform: translateY(0); opacity: 1; background: transparent; }
+}
+.animate-feed-in { animation: feed-in 600ms ease-out both; }

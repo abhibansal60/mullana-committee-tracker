@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { requireMemberByToken } from "@/lib/auth/guard";
 import {
+  getCommitteeLedger,
   getMembersForCommittee,
-  getMonthsForCommittee,
-  getMonthsSummary,
+  summarizeLedger,
 } from "@/lib/db/queries";
 import { formatRupees } from "@/lib/money";
 import Stamp from "@/components/Stamp";
@@ -17,11 +17,12 @@ export default async function MemberDashboardPage({
   const { memberToken } = await params;
   const committee = await requireMemberByToken(memberToken);
 
-  const [members, rawMonths, monthsSummary] = await Promise.all([
+  const [members, ledger] = await Promise.all([
     getMembersForCommittee(committee.id),
-    getMonthsForCommittee(committee.id),
-    getMonthsSummary(committee.id),
+    getCommitteeLedger(committee),
   ]);
+  const rawMonths = ledger.map((d) => d.month);
+  const monthsSummary = summarizeLedger(ledger);
 
   const wonMonthByMemberId = new Map<string, number>();
   for (const m of rawMonths) {
@@ -38,6 +39,23 @@ export default async function MemberDashboardPage({
 
   return (
     <div className="mx-auto max-w-lg space-y-8 px-5 py-8">
+      <Link
+        href="/play"
+        className="arena-bg flex items-center justify-between gap-3 rounded-2xl px-5 py-4 shadow-lg"
+      >
+        <span>
+          <span className="block text-xs font-semibold tracking-[0.18em] text-[var(--gold)] uppercase">
+            New · Bid from your phone
+          </span>
+          <span className="mt-0.5 block text-base font-semibold">
+            Log in for live auctions &amp; your own passbook
+          </span>
+        </span>
+        <span className="text-2xl" aria-hidden>
+          →
+        </span>
+      </Link>
+
       <section className="card p-5">
         <span className="eyebrow">{committee.name}</span>
         <p className="money mt-1 text-3xl font-medium">
