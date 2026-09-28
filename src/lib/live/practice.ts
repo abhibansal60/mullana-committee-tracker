@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import {
   committees,
   liveSettings,
+  memberGoogleAccounts,
   memberProfiles,
   members,
   months,
@@ -17,7 +18,7 @@ import {
 } from "@/lib/db/queries";
 import { generateToken, sha256Hex } from "@/lib/auth/tokens";
 import { PRACTICE_PREFIX, computeMaxBid, isPracticeCommittee, jumpBidOptions } from "./rules";
-import { committeeTerms, LiveError, placeBid, type AuctionSession } from "./queries";
+import { committeeTerms, isLiveSchemaMissing, LiveError, placeBid, type AuctionSession } from "./queries";
 
 /**
  * Practice room: a throwaway copy of a real committee that the holder can
@@ -67,8 +68,9 @@ export async function deletePracticeCommittee(real: Committee): Promise<void> {
 
 /**
  * Creates the practice copy (replacing any existing one): same members,
- * phone numbers, terms, room settings and recorded auction results - so the
- * lobby shows exactly who can bid next - but no payments and no logins.
+ * phone numbers, linked Google accounts, terms, room settings and recorded
+ * auction results - so the lobby shows exactly who can bid next - but no
+ * payments and no logins.
  */
 export async function createPracticeCommittee(real: Committee): Promise<Committee> {
   if (isPracticeCommittee(real)) throw new LiveError("This is already a practice committee");
@@ -129,6 +131,26 @@ export async function createPracticeCommittee(real: Committee): Promise<Committe
           memberId: idMap.get(p.memberId)!,
           committeeId: practice.id,
           phone: p.phone,
+        }))
+      );
+    }
+
+    const links = await db
+      .select()
+      .from(memberGoogleAccounts)
+      .where(eq(memberGoogleAccounts.committeeId, real.id))
+      .catch((err) => {
+        if (isLiveSchemaMissing(err)) return [];
+        throw err;
+      });
+    const linked = links.filter((l) => idMap.has(l.memberId));
+    if (linked.length > 0) {
+      await db.insert(memberGoogleAccounts).values(
+        linked.map((l) => ({
+          memberId: idMap.get(l.memberId)!,
+          committeeId: practice.id,
+          googleSub: l.googleSub,
+          email: l.email,
         }))
       );
     }

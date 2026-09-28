@@ -51,7 +51,12 @@ assert(bad.status === 404, "unknown phone 404");
 // Invite link
 const inv = await admin("POST", "/players", { action: "invite", memberId: players[3].id });
 const inRes = await fetch(B + inv.data.path, { redirect: "manual" });
-assert(inRes.status === 307 && inRes.headers.get("set-cookie")?.includes("player="), "invite link sets cookie + redirects " + inRes.headers.get("location"));
+if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
+  // With Google sign-in on, the invite leads to the one-time "Continue with Google" step instead.
+  assert(inRes.status === 307 && !inRes.headers.get("set-cookie")?.includes("player=") && inRes.headers.get("location")?.includes("/login?invite="), "invite link leads to Google linking " + inRes.headers.get("location"));
+} else {
+  assert(inRes.status === 307 && inRes.headers.get("set-cookie")?.includes("player="), "invite link sets cookie + redirects " + inRes.headers.get("location"));
+}
 
 const play = (name, m, p, b) => j(m, p, b, cookies[name]);
 

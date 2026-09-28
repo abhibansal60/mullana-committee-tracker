@@ -96,6 +96,9 @@ if the database is managed with `db:migrate`.)
      `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"`
    - `SETUP_PASSPHRASE` - any passphrase; required to create a committee via
      `/new` (a crude anti-spam gate, not a real user system).
+   - Optional, for "Continue with Google" (see below): `GOOGLE_CLIENT_ID`,
+     `GOOGLE_CLIENT_SECRET`, `BETTER_AUTH_SECRET` (32+ random bytes) and
+     `BETTER_AUTH_URL` (the app's origin, e.g. `http://localhost:3000`).
 
 2. Push the schema to your database:
    ```bash
@@ -135,6 +138,22 @@ share `https://<your-domain>/go/admin` / `/go/member` instead of the long
 tokenized URLs. Keep `GO_ADMIN_URL` as private as the admin link itself - it
 grants the same access.
 
+### Google sign-in
+
+Off unless `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` are set; without
+them the app behaves exactly as before. When on, a member's WhatsApp invite
+link becomes a one-time "Continue with Google" step that links their Google
+account (matched on Google's stable account id, not the email) and uses up
+the invite. After that, they log in at `/login` with Google, or with their
+phone number while the holder allows phone login. **Reset** on the Players
+page unlinks Google too; the holder sends a fresh invite to re-link.
+
+[Better Auth](https://www.better-auth.com) runs the OAuth round trip in
+stateless mode (no tables of its own); links live in `member_google_accounts`.
+The OAuth client needs the redirect URI `<origin>/api/auth/callback/google`
+for every origin (localhost and production; Google allows no wildcards, so
+Vercel preview URLs can't sign in with Google).
+
 ## Deploying
 
 1. Create a Neon project for production, grab its connection string.
@@ -147,5 +166,5 @@ grants the same access.
 
 ## Out of scope for v1
 
-Notifications/reminders, Google sign-in / OTP-verified login,
+Notifications/reminders, OTP-verified login,
 late-payment penalties/interest, edit audit history.

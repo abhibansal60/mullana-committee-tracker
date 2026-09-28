@@ -155,6 +155,32 @@ export const memberProfiles = pgTable(
   ]
 );
 
+/**
+ * A member's linked Google account, matched on Google's stable `sub` (never
+ * the email). Its own table, like the rest of the live-room data, so nothing
+ * breaks on a database that doesn't have it yet.
+ */
+export const memberGoogleAccounts = pgTable(
+  "member_google_accounts",
+  {
+    memberId: uuid("member_id")
+      .primaryKey()
+      .references(() => members.id, { onDelete: "cascade" }),
+    committeeId: uuid("committee_id")
+      .notNull()
+      .references(() => committees.id, { onDelete: "cascade" }),
+    googleSub: text("google_sub").notNull(),
+    email: text("email"), // shown to the holder only; never used to log in
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("member_google_accounts_committee_sub_idx").on(t.committeeId, t.googleSub),
+    index("member_google_accounts_sub_idx").on(t.googleSub),
+  ]
+);
+
 /** Holder-controlled defaults for the live auction room. */
 export const liveSettings = pgTable("live_settings", {
   committeeId: uuid("committee_id")

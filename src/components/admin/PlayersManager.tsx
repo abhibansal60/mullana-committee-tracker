@@ -102,7 +102,7 @@ export default function PlayersManager({
   }
 
   async function revoke(p: PlayerRow) {
-    if (!window.confirm(`Log ${p.name} out everywhere and cancel their invite link?`)) return;
+    if (!window.confirm(`Log ${p.name} out everywhere, cancel their invite link and unlink any Google account?`)) return;
     setBusy(`revoke-${p.memberId}`);
     try {
       await call({ action: "revoke", memberId: p.memberId });

@@ -14,7 +14,10 @@ describe("signSession / verifySession", () => {
 
   it("rejects a tampered token", async () => {
     const token = await signSession({ sub: "committee-1", role: "member" });
-    const tampered = token.slice(0, -1) + (token.at(-1) === "a" ? "b" : "a");
+    // Change the signature's first character: the last one can carry only
+    // base64url padding bits, so editing it may leave the signature intact.
+    const sigStart = token.lastIndexOf(".") + 1;
+    const tampered = token.slice(0, sigStart) + (token[sigStart] === "a" ? "b" : "a") + token.slice(sigStart + 1);
     expect(await verifySession(tampered)).toBeNull();
   });
 

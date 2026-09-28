@@ -8,6 +8,7 @@ import {
   auctionSessions,
   committees,
   liveSettings,
+  memberGoogleAccounts,
   memberProfiles,
   members,
   months,
@@ -57,7 +58,7 @@ export class LiveError extends Error {
 export function isLiveSchemaMissing(err: unknown): boolean {
   const e = err as { code?: string; cause?: { code?: string }; message?: string };
   const code = e?.code ?? e?.cause?.code;
-  return code === "42P01" || /relation "(auction_|live_settings|member_profiles)/.test(e?.message ?? "");
+  return code === "42P01" || /relation "(auction_|live_settings|member_profiles|member_google_accounts)/.test(e?.message ?? "");
 }
 
 export function committeeTerms(c: Committee): CommitteeTerms {
@@ -178,6 +179,11 @@ export async function revokeMemberAccess(committeeId: string, memberId: string):
         updatedAt: new Date(),
       },
     });
+  try {
+    await db.delete(memberGoogleAccounts).where(eq(memberGoogleAccounts.memberId, memberId));
+  } catch (err) {
+    if (!isLiveSchemaMissing(err)) throw err;
+  }
 }
 
 export interface LoginMatch {
@@ -188,7 +194,8 @@ export interface LoginMatch {
   epoch: number;
 }
 
-export async function consumeLoginToken(token: string): Promise<LoginMatch | null> {
+/** Who an invite token belongs to, without logging them in. */
+export async function findLoginToken(token: string): Promise<LoginMatch | null> {
   const rows = await db
     .select({
       committeeId: memberProfiles.committeeId,
@@ -202,13 +209,68 @@ export async function consumeLoginToken(token: string): Promise<LoginMatch | nul
     .innerJoin(committees, eq(committees.id, memberProfiles.committeeId))
     .where(eq(memberProfiles.loginTokenHash, sha256Hex(token)))
     .limit(1);
-  const match = rows[0];
+  return rows[0] ?? null;
+}
+
+export async function consumeLoginToken(token: string): Promise<LoginMatch | null> {
+  const match = await findLoginToken(token);
   if (!match) return null;
   await db
     .update(memberProfiles)
     .set({ lastLoginAt: new Date() })
     .where(eq(memberProfiles.memberId, match.memberId));
   return match;
+}
+
+/**
+ * Links a Google account to the member whose invite token this is, and uses
+ * up the invite: from then on that member logs in with Google (or by phone,
+ * if the holder allows it), never with the old link.
+ */
+export async function linkGoogleAccount(
+  token: string,
+  googleSub: string,
+  email: string | null
+): Promise<LoginMatch | null> {
+  const match = await consumeLoginToken(token);
+  if (!match) return null;
+  const clash = await db
+    .select({ memberId: memberGoogleAccounts.memberId })
+    .from(memberGoogleAccounts)
+    .where(and(eq(memberGoogleAccounts.committeeId, match.committeeId), eq(memberGoogleAccounts.googleSub, googleSub)))
+    .limit(1);
+  if (clash[0] && clash[0].memberId !== match.memberId) {
+    throw new LiveError("This Google account is already linked to someone else in this committee", 409);
+  }
+  await db
+    .insert(memberGoogleAccounts)
+    .values({ memberId: match.memberId, committeeId: match.committeeId, googleSub, email })
+    .onConflictDoUpdate({
+      target: memberGoogleAccounts.memberId,
+      set: { googleSub, email, createdAt: new Date() },
+    });
+  await db
+    .update(memberProfiles)
+    .set({ loginTokenHash: null, updatedAt: new Date() })
+    .where(eq(memberProfiles.memberId, match.memberId));
+  return match;
+}
+
+/** Every committee membership linked to this Google account. */
+export async function findLoginsByGoogleSub(googleSub: string): Promise<LoginMatch[]> {
+  return db
+    .select({
+      committeeId: memberGoogleAccounts.committeeId,
+      committeeName: committees.name,
+      memberId: memberGoogleAccounts.memberId,
+      memberName: members.name,
+      epoch: sql<number>`coalesce(${memberProfiles.sessionEpoch}, 0)`,
+    })
+    .from(memberGoogleAccounts)
+    .innerJoin(members, eq(members.id, memberGoogleAccounts.memberId))
+    .innerJoin(committees, eq(committees.id, memberGoogleAccounts.committeeId))
+    .leftJoin(memberProfiles, eq(memberProfiles.memberId, memberGoogleAccounts.memberId))
+    .where(eq(memberGoogleAccounts.googleSub, googleSub));
 }
 
 /** Every committee membership registered under this phone number. */
@@ -238,16 +300,23 @@ export async function findLoginsByPhone(phone: string): Promise<LoginMatch[]> {
     }));
 }
 
-/** Other committee seats registered under the same phone number as this member. */
+/** Other committee seats under the same phone number or Google account as this member. */
 export async function getOtherMemberships(memberId: string): Promise<LoginMatch[]> {
   const mine = await db
-    .select({ phone: memberProfiles.phone })
-    .from(memberProfiles)
-    .where(eq(memberProfiles.memberId, memberId))
+    .select({ phone: memberProfiles.phone, googleSub: memberGoogleAccounts.googleSub })
+    .from(members)
+    .leftJoin(memberProfiles, eq(memberProfiles.memberId, members.id))
+    .leftJoin(memberGoogleAccounts, eq(memberGoogleAccounts.memberId, members.id))
+    .where(eq(members.id, memberId))
     .limit(1);
-  const phone = mine[0]?.phone;
-  if (!phone) return [];
-  return (await findLoginsByPhone(phone)).filter((m) => m.memberId !== memberId);
+  const { phone, googleSub } = mine[0] ?? {};
+  const [byPhone, byGoogle] = await Promise.all([
+    phone ? findLoginsByPhone(phone) : [],
+    googleSub ? findLoginsByGoogleSub(googleSub) : [],
+  ]);
+  const others = new Map<string, LoginMatch>();
+  for (const m of [...byPhone, ...byGoogle]) if (m.memberId !== memberId) others.set(m.memberId, m);
+  return [...others.values()];
 }
 
 export async function markLoggedIn(memberId: string): Promise<void> {
