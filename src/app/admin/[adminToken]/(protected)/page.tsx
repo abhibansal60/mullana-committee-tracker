@@ -9,13 +9,18 @@ import { formatRupees } from "@/lib/money";
 import Stamp from "@/components/Stamp";
 import ProfitLossSummary from "@/components/ProfitLossSummary";
 import CommitteeDayCard from "@/components/admin/CommitteeDayCard";
+import PracticeCard from "@/components/admin/PracticeCard";
+import { isPracticeCommittee } from "@/lib/live/rules";
 
 export default async function AdminDashboardPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ adminToken: string }>;
+  searchParams: Promise<{ practice?: string }>;
 }) {
   const { adminToken } = await params;
+  const { practice: practiceFlag } = await searchParams;
   const committee = await requireAdminByToken(adminToken);
 
   const [members, ledger] = await Promise.all([
@@ -118,6 +123,14 @@ export default async function AdminDashboardPage({
         monthlyContribution={committee.monthlyContribution}
         months={monthsSummary}
       />
+
+      {!isPracticeCommittee(committee) && (
+        <PracticeCard
+          committee={committee}
+          adminToken={adminToken}
+          justDeleted={practiceFlag === "deleted"}
+        />
+      )}
     </div>
   );
 }

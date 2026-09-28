@@ -25,6 +25,7 @@ import { PLAYER_COOKIE, verifyPlayerSession } from "@/lib/auth/player";
 import {
   COUNTDOWN_MS,
   computeMaxBid,
+  isPracticeCommittee,
   defaultLiveSettings,
   isReaction,
   jumpBidOptions,
@@ -235,6 +236,18 @@ export async function findLoginsByPhone(phone: string): Promise<LoginMatch[]> {
       memberName: r.memberName,
       epoch: r.epoch,
     }));
+}
+
+/** Other committee seats registered under the same phone number as this member. */
+export async function getOtherMemberships(memberId: string): Promise<LoginMatch[]> {
+  const mine = await db
+    .select({ phone: memberProfiles.phone })
+    .from(memberProfiles)
+    .where(eq(memberProfiles.memberId, memberId))
+    .limit(1);
+  const phone = mine[0]?.phone;
+  if (!phone) return [];
+  return (await findLoginsByPhone(phone)).filter((m) => m.memberId !== memberId);
 }
 
 export async function markLoggedIn(memberId: string): Promise<void> {
@@ -675,6 +688,7 @@ export interface LivePlayer {
   eligible: boolean; // can bid this month
   online: boolean;
   wonMonth: number | null;
+  bot: boolean; // practice room only: seat played by a bot
 }
 
 export interface LiveBid {
@@ -700,6 +714,7 @@ export interface LiveState {
     pot: number;
     runnerUpBonus: number;
     durationMonths: number;
+    practice: boolean;
   };
   hostOnline: boolean;
   hostName: string;
@@ -765,6 +780,8 @@ export async function getLiveState(committee: Committee, viewer: Viewer): Promis
 
   const now = Date.now();
   const seenById = new Map(profiles.map((p) => [p.memberId, p.lastSeenAt?.getTime() ?? 0]));
+  const practice = isPracticeCommittee(committee);
+  const loggedInIds = new Set(profiles.filter((p) => p.lastLoginAt).map((p) => p.memberId));
   if (viewer.kind === "player" && !viewer.peek) seenById.set(viewer.memberId, now);
 
   let eligibleIds = new Set<string>();
@@ -832,6 +849,7 @@ export async function getLiveState(committee: Committee, viewer: Viewer): Promis
     eligible: eligibleIds.has(m.id),
     online: now - (seenById.get(m.id) ?? 0) < ONLINE_WINDOW_MS,
     wonMonth: wonMonthById.get(m.id) ?? null,
+    bot: practice && !m.isHolder && !loggedInIds.has(m.id),
   }));
 
   let me: LiveState["me"] = null;
@@ -879,6 +897,7 @@ export async function getLiveState(committee: Committee, viewer: Viewer): Promis
       pot,
       runnerUpBonus: committee.runnerUpBonus,
       durationMonths: committee.durationMonths,
+      practice,
     },
     hostOnline:
       viewer.kind === "host" ||

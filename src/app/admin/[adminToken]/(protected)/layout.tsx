@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requireAdminByToken } from "@/lib/auth/guard";
 import LogoutButton from "./logout-button";
+import { isPracticeCommittee } from "@/lib/live/rules";
 
 export default async function ProtectedAdminLayout({
   children,
@@ -45,6 +46,11 @@ export default async function ProtectedAdminLayout({
           </div>
         </div>
       </header>
+      {isPracticeCommittee(committee) && (
+        <div className="bg-[#8e6cf0]/15 px-5 py-2 text-center text-xs font-semibold text-[#6b4fd6] dark:text-[#cbbcff]">
+          🧪 Practice copy — nothing here affects the real committee
+        </div>
+      )}
       <main className="flex-1">{children}</main>
     </div>
   );

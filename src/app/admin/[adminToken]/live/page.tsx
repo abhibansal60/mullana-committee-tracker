@@ -7,15 +7,21 @@ import {
   getLiveState,
   isLiveSchemaMissing,
 } from "@/lib/live/queries";
-import { computeMaxBid, minOpeningBid } from "@/lib/live/rules";
+import { computeMaxBid, isPracticeCommittee, minOpeningBid } from "@/lib/live/rules";
+import { verifyPracticeParent } from "@/lib/live/practice";
 import HostConsole from "@/components/live/HostConsole";
 import SchemaMissing from "@/components/live/SchemaMissing";
 
 export const metadata: Metadata = { title: "Auction room · Host" };
 
-export default async function HostLivePage({ params }: PageProps<"/admin/[adminToken]/live">) {
+export default async function HostLivePage({ params, searchParams }: PageProps<"/admin/[adminToken]/live">) {
   const { adminToken } = await params;
+  const { parent } = await searchParams;
   const committee = await requireAdminByToken(adminToken);
+  const practice = isPracticeCommittee(committee);
+  const parentCommittee = practice
+    ? await verifyPracticeParent(committee, typeof parent === "string" ? parent : undefined)
+    : null;
 
   let data;
   try {
@@ -39,6 +45,8 @@ export default async function HostLivePage({ params }: PageProps<"/admin/[adminT
       settings={settings}
       maxBid={computeMaxBid(terms)}
       minOpeningBid={minOpeningBid(terms)}
+      practice={practice}
+      parentAdminToken={parentCommittee && typeof parent === "string" ? parent : null}
     />
   );
 }

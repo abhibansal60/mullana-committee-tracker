@@ -1,7 +1,14 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCommitteeLedger } from "@/lib/db/queries";
-import { getCurrentPlayer, getDisplaySession, isLiveSchemaMissing } from "@/lib/live/queries";
+import {
+  getCurrentPlayer,
+  getDisplaySession,
+  getOtherMemberships,
+  isLiveSchemaMissing,
+} from "@/lib/live/queries";
+import { isPracticeCommittee } from "@/lib/live/rules";
+import SwitchCommittee from "@/components/play/SwitchCommittee";
 import { db } from "@/lib/db";
 import { months as monthsTable } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
@@ -20,12 +27,14 @@ export default async function PlayHomePage({ searchParams }: PageProps<"/play">)
   const { committee, member } = player;
   const { welcome } = await searchParams;
 
-  const [ledger, session] = await Promise.all([
+  const practice = isPracticeCommittee(committee);
+  const [ledger, session, others] = await Promise.all([
     getCommitteeLedger(committee),
     getDisplaySession(committee.id).catch((err) => {
       if (isLiveSchemaMissing(err)) return null;
       throw err;
     }),
+    getOtherMemberships(member.id).catch(() => []),
   ]);
 
   let sessionMonthNumber: number | null = null;
@@ -80,7 +89,20 @@ export default async function PlayHomePage({ searchParams }: PageProps<"/play">)
           </p>
         )}
 
+        {practice && (
+          <div className="rounded-xl border border-dashed border-[#8e6cf0] bg-[#8e6cf0]/10 px-4 py-3 text-sm">
+            <p className="font-semibold">🧪 You&apos;re in the practice room</p>
+            <p className="mt-0.5 text-[var(--muted)]">Bids and results here are pretend — play around!</p>
+          </div>
+        )}
+        {others.length > 0 && (
+          <SwitchCommittee
+            options={others.map((o) => ({ memberId: o.memberId, committeeName: o.committeeName }))}
+          />
+        )}
+
         <LiveBanner
+          key={committee.id}
           initial={{
             status: session?.status ?? null,
             monthNumber: sessionMonthNumber,

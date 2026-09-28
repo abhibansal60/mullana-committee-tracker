@@ -281,7 +281,7 @@ export default function LiveRoom({
                 {connection === "lost" ? "Reconnecting…" : "Weak signal"}
               </span>
             )}
-            <span className="flex items-center gap-1.5 rounded-full border border-[var(--arena-line)] px-2.5 py-1 text-xs font-semibold">
+            <span className="flex items-center gap-1.5 rounded-full border border-[var(--arena-line)] px-2.5 py-1 text-xs font-semibold whitespace-nowrap">
               <span className="h-2 w-2 rounded-full bg-[var(--win)]" />
               {online.length} here
             </span>
@@ -305,6 +305,12 @@ export default function LiveRoom({
         </div>
       </header>
 
+      {state.committee.practice && (
+        <div className="bg-[#8e6cf0]/20 py-1.5 text-center text-xs font-semibold tracking-wide text-[#cbbcff]">
+          🧪 PRACTICE ROOM — nothing here is real
+        </div>
+      )}
+
       {/* Roster */}
       <div className="mx-auto w-full max-w-2xl overflow-x-auto px-4 pt-6 pb-2 [scrollbar-width:none]">
         <ul className="flex min-w-max gap-3.5">
@@ -320,6 +326,7 @@ export default function LiveRoom({
                   crown={session?.leaderId === p.id && session.status !== "lobby"}
                   ring={session?.leaderId === p.id && session.status !== "lobby"}
                   dim={!p.eligible && !!session}
+                  bot={p.bot && (p.eligible || !session)}
                 />
                 <span
                   className={`w-full truncate text-center text-[11px] ${
@@ -335,7 +342,7 @@ export default function LiveRoom({
 
       <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col px-4 pb-64">
         {!session && (
-          <NoRoom mode={mode} hostName={state.hostName} committeeName={state.committee.name} homeHref={homeHref} />
+          <NoRoom mode={mode} hostName={state.hostName} homeHref={homeHref} />
         )}
 
         {session?.status === "lobby" && (
@@ -717,7 +724,7 @@ function Lobby({
         <ul className="mt-5 grid grid-cols-4 gap-x-2 gap-y-5 sm:grid-cols-6">
           {[...bidders].sort((a, b) => Number(b.online) - Number(a.online)).map((p) => (
             <li key={p.id} className={`flex flex-col items-center gap-1.5 ${p.online ? "animate-pop-in" : ""}`}>
-              <Avatar name={p.name} size={52} online={p.online} dim={!p.online} />
+              <Avatar name={p.name} size={52} online={p.online} dim={!p.online} bot={p.bot} />
               <span className={`w-full truncate text-xs ${p.online ? "" : "text-[var(--arena-muted)]"}`}>
                 {p.id === state.me?.memberId ? "You" : p.name.split(" ")[0]}
               </span>
@@ -805,12 +812,10 @@ function Result({ state, mode, homeHref }: { state: LiveState; mode: "player" | 
 function NoRoom({
   mode,
   hostName,
-  committeeName,
   homeHref,
 }: {
   mode: "player" | "host";
   hostName: string;
-  committeeName: string;
   homeHref: string;
 }) {
   return (
@@ -821,7 +826,7 @@ function NoRoom({
       </h1>
       <p className="mt-2 max-w-xs text-sm text-[var(--arena-muted)]">
         {mode === "host"
-          ? `Open the room below when ${committeeName} is ready - everyone's phone lights up.`
+          ? "Open the room below when you're ready - everyone's phone lights up."
           : `${hostName} opens the room on committee day. Keep this page handy - it lights up by itself.`}
       </p>
       {mode === "player" && (
