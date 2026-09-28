@@ -35,6 +35,7 @@ export default function Avatar({
   crown,
   dim,
   ring,
+  bot,
   className = "",
 }: {
   name: string;
@@ -43,6 +44,7 @@ export default function Avatar({
   crown?: boolean;
   dim?: boolean;
   ring?: boolean;
+  bot?: boolean;
   className?: string;
 }) {
   const [bg, fg] = avatarColors(name);
@@ -72,6 +74,15 @@ export default function Avatar({
           aria-label="Highest bidder"
         >
           👑
+        </span>
+      )}
+      {bot && (
+        <span
+          className="absolute -top-1 -left-1 flex items-center justify-center rounded-full bg-[var(--arena)] leading-none"
+          style={{ width: size * 0.42, height: size * 0.42, fontSize: size * 0.28 }}
+          aria-label="bot"
+        >
+          🤖
         </span>
       )}
       {online !== undefined && (

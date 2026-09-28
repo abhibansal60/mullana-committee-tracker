@@ -1,13 +1,19 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { addReaction, getLiveState, openLobby, runHostAction } from "@/lib/live/queries";
+import { addReaction, getDisplaySession, getLiveState, openLobby, runHostAction } from "@/lib/live/queries";
+import { runBots } from "@/lib/live/practice";
+import { isPracticeCommittee } from "@/lib/live/rules";
 import { adminCommittee, liveErrorResponse, noStore } from "@/lib/live/http";
 
-export async function GET(_request: Request, ctx: RouteContext<"/api/committees/[adminToken]/live">) {
+export async function GET(request: Request, ctx: RouteContext<"/api/committees/[adminToken]/live">) {
   const { adminToken } = await ctx.params;
   const committee = await adminCommittee(adminToken);
   if (committee instanceof NextResponse) return committee;
   try {
+    // Practice room: the host's console drives the bots on each poll.
+    if (isPracticeCommittee(committee) && new URL(request.url).searchParams.has("bots")) {
+      await runBots(committee, await getDisplaySession(committee.id));
+    }
     return NextResponse.json(await getLiveState(committee, { kind: "host" }), noStore);
   } catch (err) {
     return liveErrorResponse(err);

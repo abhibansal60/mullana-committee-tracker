@@ -43,6 +43,17 @@ and bid live from the app on auction day.
    winner, bid and runner-up into the month exactly as the manual auction
    form would; payments are collected from the dashboard as before.
 
+**Practice room**: the dashboard's "🧪 Practice room" card makes a
+throwaway copy of the committee (members, numbers, settings and results so
+far; no payments) at its own admin link, and signs the holder straight in.
+Bots play every seat nobody has logged into - they bid while the host
+console is open with "Bots" ticked, then fold so the fuse burns out.
+Friends can join with their number and pick the practice committee at
+login (or switch from their home screen). "Reset" wipes and recreates it at
+the same link; nothing in it can touch the real committee. No extra
+tables: the copy's admin token is derived from the real committee id with
+`AUTH_SECRET` (`src/lib/live/practice.ts`).
+
 **Member flow**: `/login` with their number (or tap the personal link) →
 `/play` is their passbook (season track, what they owe, winners so far) →
 `/play/live` is the room: one big gold button bids the next amount, side

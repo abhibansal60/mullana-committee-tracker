@@ -186,3 +186,10 @@ export function standingsFromBids(
   }
   return { leaderId: last.memberId, runnerUpId, currentBid: last.amount };
 }
+
+/** Practice copies of a committee are marked by their name (see practice.ts). */
+export const PRACTICE_PREFIX = "Practice · ";
+
+export function isPracticeCommittee(c: { name: string }): boolean {
+  return c.name.startsWith(PRACTICE_PREFIX);
+}
