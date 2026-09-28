@@ -1,0 +1,48 @@
+import { NextResponse } from "next/server";
+import { z } from "zod";
+import { addReaction, getLiveState, openLobby, runHostAction } from "@/lib/live/queries";
+import { adminCommittee, liveErrorResponse, noStore } from "@/lib/live/http";
+
+export async function GET(_request: Request, ctx: RouteContext<"/api/committees/[adminToken]/live">) {
+  const { adminToken } = await ctx.params;
+  const committee = await adminCommittee(adminToken);
+  if (committee instanceof NextResponse) return committee;
+  try {
+    return NextResponse.json(await getLiveState(committee, { kind: "host" }), noStore);
+  } catch (err) {
+    return liveErrorResponse(err);
+  }
+}
+
+const actionSchema = z.discriminatedUnion("action", [
+  z.object({ action: z.literal("open"), monthId: z.string().uuid() }),
+  z.object({ action: z.literal("start") }),
+  z.object({ action: z.literal("pause") }),
+  z.object({ action: z.literal("resume") }),
+  z.object({ action: z.literal("extend") }),
+  z.object({ action: z.literal("hammer") }),
+  z.object({ action: z.literal("undo") }),
+  z.object({ action: z.literal("reopen") }),
+  z.object({ action: z.literal("cancel") }),
+  z.object({ action: z.literal("finalize"), runnerUpMemberId: z.string().uuid().optional() }),
+  z.object({ action: z.literal("react"), emoji: z.string().max(8) }),
+]);
+
+export async function POST(request: Request, ctx: RouteContext<"/api/committees/[adminToken]/live">) {
+  const { adminToken } = await ctx.params;
+  const committee = await adminCommittee(adminToken);
+  if (committee instanceof NextResponse) return committee;
+
+  const parsed = actionSchema.safeParse(await request.json().catch(() => null));
+  if (!parsed.success) return NextResponse.json({ error: "Invalid action" }, { status: 400 });
+  const input = parsed.data;
+
+  try {
+    if (input.action === "open") await openLobby(committee, input.monthId);
+    else if (input.action === "react") await addReaction(committee, null, input.emoji);
+    else await runHostAction(committee, input);
+    return NextResponse.json({ ok: true, state: await getLiveState(committee, { kind: "host" }) }, noStore);
+  } catch (err) {
+    return liveErrorResponse(err);
+  }
+}

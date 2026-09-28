@@ -24,12 +24,63 @@ for all payout/dues calculations, covered by unit tests in
   runner-up (second-lowest bidder) gets a flat discount off their
   contribution. The remaining discount splits evenly across everyone else.
 
+## Committee Day: the live auction room
+
+Members log in once on their phone (valid for the whole committee year)
+and bid live from the app on auction day.
+
+**Holder flow** (admin link):
+1. **Players** tab - save each member's WhatsApp number, then tap
+   **WhatsApp invite** to send them a personal login link (opens WhatsApp
+   with the message pre-filled). "Reset" logs a member out everywhere.
+2. **Live** tab (or the "Committee day" card on the dashboard) - pick the
+   month, check the opening bid / minimum raise / fuse length, and **Open
+   the auction room**. Members' home screens light up and they drop into a
+   lobby where everyone can see who's joined.
+3. **Start bidding** - a 3-2-1 countdown, then bidding opens. Host controls:
+   pause/resume, +10s, SOLD now, undo last bid (mistaken taps), cancel.
+4. When the fuse burns out it's SOLD. **Confirm & record** writes the
+   winner, bid and runner-up into the month exactly as the manual auction
+   form would; payments are collected from the dashboard as before.
+
+**Member flow**: `/login` with their number (or tap the personal link) →
+`/play` is their passbook (season track, what they owe, winners so far) →
+`/play/live` is the room: one big gold button bids the next amount, side
+buttons jump higher, every bid relights the fuse, emoji reactions float
+across everyone's screen, sounds/haptics for bids, outbids and the hammer.
+Members who've already won (and the holder) watch and react but can't bid.
+Profit/loss is never shown in the member experience.
+
+**Rules** live in `src/lib/live/rules.ts` (tested): bids are the discount,
+in steps of ₹500, from the opening bid up to the largest bid
+`computeMonthDues` accepts; the runner-up is the last person the winner
+outbid. Bids are placed with a single conditional SQL statement, so two
+people tapping at the same instant can't both win - the loser gets "Too
+slow!". Sync is by polling (~1s while live), so it works on Vercel with no
+extra services; the fuse closes lazily on the first read after it expires.
+
+### One-time database update
+
+The live room uses five new tables (`member_profiles`, `live_settings`,
+`auction_sessions`, `auction_bids`, `auction_reactions`) and touches no
+existing ones - until they exist, the rest of the app keeps working and
+the live pages show a "one quick setup step" notice. Create them with:
+
+```bash
+npm run db:push      # against the production DATABASE_URL
+```
+
+(`drizzle/0001_live_auction.sql` is the same change as a migration file,
+if the database is managed with `db:migrate`.)
+
 ## Local development
 
 1. Copy `.env.example` to `.env.local` and fill in:
    - `DATABASE_URL` - a Postgres connection string. Recommended: create a
      free [Neon](https://neon.tech) project and use a dev branch, so local
-     dev matches production.
+     dev matches production. A plain local Postgres
+     (`postgres://user:pass@localhost/db`) also works - `src/lib/db/index.ts`
+     switches to node-postgres for localhost URLs.
    - `AUTH_SECRET` - 32+ random bytes:
      `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"`
    - `SETUP_PASSPHRASE` - any passphrase; required to create a committee via
@@ -85,6 +136,5 @@ grants the same access.
 
 ## Out of scope for v1
 
-Live in-app bidding (auctions happen on WhatsApp, results are recorded
-after), notifications/reminders, late-payment penalties/interest, edit
-audit history, per-person member links.
+Notifications/reminders, Google sign-in / OTP-verified login,
+late-payment penalties/interest, edit audit history.

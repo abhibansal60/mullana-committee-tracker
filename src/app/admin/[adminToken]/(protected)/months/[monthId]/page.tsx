@@ -17,6 +17,7 @@ export default async function AdminMonthDetailPage({
 
   const detail = await getMonthDetail(monthId);
   if (!detail || detail.committee.id !== committee.id) notFound();
+  const eligibleMembers = await getEligibleAuctionMembers(committee.id, monthId);
 
   return (
     <div className="mx-auto max-w-lg space-y-6 px-5 py-8">
@@ -44,7 +45,7 @@ export default async function AdminMonthDetailPage({
         <AuctionForm
           monthId={monthId}
           isReservedMonth={detail.isReserved}
-          eligibleMembers={await getEligibleAuctionMembers(committee.id, monthId)}
+          eligibleMembers={eligibleMembers}
         />
       ) : (
         <div>
@@ -59,10 +60,7 @@ export default async function AdminMonthDetailPage({
               <AuctionForm
                 monthId={monthId}
                 isReservedMonth={detail.isReserved}
-                eligibleMembers={await getEligibleAuctionMembers(
-                  committee.id,
-                  monthId
-                )}
+                eligibleMembers={eligibleMembers}
               />
             </div>
           </details>

@@ -15,14 +15,26 @@ export default async function ProtectedAdminLayout({
   return (
     <div className="min-h-full flex flex-col">
       <header className="bg-spine">
-        <div className="mx-auto flex max-w-lg items-center justify-between px-5 py-3.5">
+        <div className="mx-auto flex max-w-lg items-center justify-between gap-3 px-5 py-3.5">
           <Link
             href={`/admin/${adminToken}`}
-            className="font-[family-name:var(--font-display)] text-[15px] font-semibold text-spine-foreground"
+            className="min-w-0 truncate font-[family-name:var(--font-display)] text-[15px] font-semibold text-spine-foreground"
           >
             {committee.name}
           </Link>
-          <div className="flex items-center gap-4 text-sm text-spine-muted">
+          <div className="flex shrink-0 items-center gap-3 text-[13px] whitespace-nowrap text-spine-muted">
+            <Link
+              href={`/admin/${adminToken}/live`}
+              className="font-semibold text-[var(--gold)] hover:text-spine-foreground"
+            >
+              Live
+            </Link>
+            <Link
+              href={`/admin/${adminToken}/players`}
+              className="hover:text-spine-foreground"
+            >
+              Players
+            </Link>
             <Link
               href={`/admin/${adminToken}/settings`}
               className="hover:text-spine-foreground"
