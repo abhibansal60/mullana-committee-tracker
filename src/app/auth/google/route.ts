@@ -2,8 +2,8 @@ import { NextResponse } from "next/server";
 import { getGoogleAuth } from "@/lib/auth/google";
 
 /**
- * Starts "Continue with Google". `?invite=<token>` links the Google account
- * to that invite's member; without it, it's a plain login.
+ * Starts "Continue with Google". `?join=<code>` comes from the committee's
+ * shared join link; without it, it's a plain login.
  */
 export async function GET(request: Request) {
   const url = new URL(request.url);
@@ -11,8 +11,8 @@ export async function GET(request: Request) {
   if (!auth) return NextResponse.redirect(new URL("/login", url));
 
   const done = new URLSearchParams();
-  const invite = url.searchParams.get("invite");
-  if (invite) done.set("invite", invite);
+  const join = url.searchParams.get("join");
+  if (join) done.set("join", join);
   if (url.searchParams.get("next") === "live") done.set("next", "live");
 
   const { headers, response } = await auth.api.signInSocial({

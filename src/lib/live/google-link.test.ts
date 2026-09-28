@@ -43,17 +43,36 @@ describe.skipIf(!localDb)("Google account linking", async () => {
     await db.delete(committees).where(eq(committees.id, committee.id));
   });
 
-  it("links via the invite once, then logs in by sub", async () => {
-    const token = await q.issueLoginToken(committee.id, ids[1]);
-    const match = await q.linkGoogleAccount(token, sub, "asha@example.com");
-    expect(match?.memberId).toBe(ids[1]);
-    expect(await q.linkGoogleAccount(token, sub, null)).toBeNull(); // invite used up
+  it("a member claims their name once; it then can't be picked again", async () => {
+    const before = (await q.getUnclaimedMembers(committee.id)).map((m) => m.id);
+    expect(before).toEqual(expect.arrayContaining(ids));
+    const match = await q.claimMember(committee.id, ids[1], sub, "asha@example.com");
+    expect(match.memberId).toBe(ids[1]);
+    expect((await q.getUnclaimedMembers(committee.id)).map((m) => m.id)).not.toContain(ids[1]);
+    expect((await q.getGoogleEmails(committee.id)).get(ids[1])).toBe("asha@example.com");
     expect((await q.findLoginsByGoogleSub(sub)).map((m) => m.memberId)).toEqual([ids[1]]);
+    await expect(q.claimMember(committee.id, ids[1], `${sub}-other`, null)).rejects.toThrow(/already picked/);
   });
 
-  it("refuses a Google account already linked to another member", async () => {
-    const token = await q.issueLoginToken(committee.id, ids[2]);
-    await expect(q.linkGoogleAccount(token, sub, null)).rejects.toThrow(/already linked/);
+  it("refuses a Google account that already joined as someone else", async () => {
+    await expect(q.claimMember(committee.id, ids[2], sub, null)).rejects.toThrow(/already joined as someone else/);
+  });
+
+  it("logging in creates the profile row so the join shows on the Players page", async () => {
+    await q.markLoggedIn(ids[1]);
+    const profile = (await q.getProfilesForCommittee(committee.id)).find((p) => p.memberId === ids[1]);
+    expect(profile?.lastLoginAt).toBeTruthy();
+  });
+
+  it("the holder can rename a member, but not to a name already taken", async () => {
+    expect(await q.renameMember(committee.id, ids[2], "  Bina   Devi ")).toBe("Bina Devi");
+    await expect(q.renameMember(committee.id, ids[2], "asha")).rejects.toThrow(/already has that name/);
+  });
+
+  it("phone login is off unless the holder turns it on", async () => {
+    await q.setMemberPhone(committee.id, ids[2], "9876500001");
+    expect(await q.findLoginsByPhone("9876500001")).toEqual([]);
+    expect((await q.getLiveSettings(committee)).allowPhoneLogin).toBe(false);
   });
 
   it("copies links to the practice committee, which shows up as another membership", async () => {

@@ -26,13 +26,15 @@ for all payout/dues calculations, covered by unit tests in
 
 ## Committee Day: the live auction room
 
-Members log in once on their phone (valid for the whole committee year)
-and bid live from the app on auction day.
+Members join once with Google (valid for the whole committee year) and
+bid live from the app on auction day.
 
 **Holder flow** (admin link):
-1. **Players** tab - save each member's WhatsApp number, then tap
-   **WhatsApp invite** to send them a personal login link (opens WhatsApp
-   with the message pre-filled). "Reset" logs a member out everywhere.
+1. **Players** tab - share the one join link on WhatsApp. Each member signs
+   in with Google and picks their own name (taken names disappear from the
+   list). You see who joined and with which Google account, can fix a name,
+   and **Reset** a member to unlink them. Members who never join can still
+   take part: during live bidding, **Bid for a member** places a bid as them.
 2. **Live** tab (or the "Committee day" card on the dashboard) - pick the
    month, check the opening bid / minimum raise / fuse length, and **Open
    the auction room**. Members' home screens light up and they drop into a
@@ -140,13 +142,12 @@ grants the same access.
 
 ### Google sign-in
 
-Off unless `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` are set; without
-them the app behaves exactly as before. When on, a member's WhatsApp invite
-link becomes a one-time "Continue with Google" step that links their Google
-account (matched on Google's stable account id, not the email) and uses up
-the invite. After that, they log in at `/login` with Google, or with their
-phone number while the holder allows phone login. **Reset** on the Players
-page unlinks Google too; the holder sends a fresh invite to re-link.
+Off unless `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` are set. The join
+link is `/join/<committee id>.<signature>` (signed with `AUTH_SECRET`, nothing
+stored). Google's stable account id, not the email, identifies a member.
+After joining, members log in at `/login` with Google. Phone-number login
+still exists but is **off by default**; the holder can turn it on in the Live
+room settings, and phone fields then appear on the Players page.
 
 [Better Auth](https://www.better-auth.com) runs the OAuth round trip in
 stateless mode (no tables of its own); links live in `member_google_accounts`.

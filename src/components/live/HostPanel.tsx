@@ -38,6 +38,7 @@ export default function HostPanel({
   const [editing, setEditing] = useState(false);
   const [runnerUpPick, setRunnerUpPick] = useState("");
   const [copied, setCopied] = useState(false);
+  const [bidForPick, setBidFor] = useState("");
 
   const s = state.session;
   const status = s?.status ?? null;
@@ -118,6 +119,11 @@ export default function HostPanel({
   }
 
   const b = (key: string) => busy === key;
+  // Members the holder can bid for: eligible, not already leading. Anyone not in the room comes first.
+  const bidForOptions = state.players
+    .filter((p) => p.eligible && p.id !== s?.leaderId)
+    .sort((a, b) => Number(a.online) - Number(b.online) || a.name.localeCompare(b.name));
+  const bidFor = bidForOptions.some((p) => p.id === bidForPick) ? bidForPick : bidForOptions[0]?.id ?? "";
   const eligibleForRunnerUp = state.players.filter((p) => p.eligible && p.id !== s?.leaderId);
 
   return (
@@ -228,7 +234,7 @@ export default function HostPanel({
                       onChange={(e) => setSettings({ ...settings, allowPhoneLogin: e.target.checked })}
                       className="h-4 w-4 accent-[var(--gold)]"
                     />
-                    Members can log in with just their mobile number
+                    Also allow login with a mobile number (off by default)
                   </label>
                   <div className="flex gap-2">
                     <button type="button" className="host-button-primary flex-1" disabled={b("settings")} onClick={saveSettings}>
@@ -277,6 +283,42 @@ export default function HostPanel({
           >
             Close room
           </button>
+        </div>
+      )}
+
+      {status === "live" && s && (
+        <div className="mb-3 rounded-xl border border-[var(--arena-line)] p-3">
+          <p className="text-xs font-semibold tracking-[0.18em] text-[var(--arena-muted)] uppercase">Bid for a member</p>
+          {bidForOptions.length === 0 || s.jumpOptions.length === 0 ? (
+            <p className="mt-2 text-sm text-[var(--arena-muted)]">
+              {s.jumpOptions.length === 0 ? "Maximum bid reached." : "Nobody else can bid right now."}
+            </p>
+          ) : (
+            <>
+              <select className="arena-input mt-2" value={bidFor} onChange={(e) => setBidFor(e.target.value)}>
+                {bidForOptions.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                    {p.online ? "" : " · not here"}
+                  </option>
+                ))}
+              </select>
+              <div className="mt-2 grid grid-cols-3 gap-2">
+                {s.jumpOptions.map((a) => (
+                  <button
+                    key={a}
+                    type="button"
+                    className="chip-button money"
+                    disabled={!!busy || !bidFor}
+                    onClick={() => act("bid", { memberId: bidFor, expectedBid: s.currentBid, amount: a })}
+                  >
+                    {formatRupees(a)}
+                  </button>
+                ))}
+              </div>
+              <p className="mt-2 text-xs text-[var(--arena-muted)]">Placed as that member. Mistaken tap? Undo last bid.</p>
+            </>
+          )}
         </div>
       )}
 

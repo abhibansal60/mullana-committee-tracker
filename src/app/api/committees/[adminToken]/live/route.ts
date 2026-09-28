@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { addReaction, getDisplaySession, getLiveState, openLobby, runHostAction } from "@/lib/live/queries";
+import { addReaction, getDisplaySession, getLiveState, openLobby, placeBid, runHostAction } from "@/lib/live/queries";
 import { runBots } from "@/lib/live/practice";
 import { isPracticeCommittee } from "@/lib/live/rules";
 import { adminCommittee, liveErrorResponse, noStore } from "@/lib/live/http";
@@ -32,6 +32,13 @@ const actionSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("cancel") }),
   z.object({ action: z.literal("finalize"), runnerUpMemberId: z.string().uuid().optional() }),
   z.object({ action: z.literal("react"), emoji: z.string().max(8) }),
+  // The holder bidding for a member who isn't in the room.
+  z.object({
+    action: z.literal("bid"),
+    memberId: z.string().uuid(),
+    expectedBid: z.number().int().nullable(),
+    amount: z.number().int().positive(),
+  }),
 ]);
 
 export async function POST(request: Request, ctx: RouteContext<"/api/committees/[adminToken]/live">) {
@@ -46,6 +53,7 @@ export async function POST(request: Request, ctx: RouteContext<"/api/committees/
   try {
     if (input.action === "open") await openLobby(committee, input.monthId);
     else if (input.action === "react") await addReaction(committee, null, input.emoji);
+    else if (input.action === "bid") await placeBid(committee, input.memberId, input.expectedBid, input.amount);
     else await runHostAction(committee, input);
     return NextResponse.json({ ok: true, state: await getLiveState(committee, { kind: "host" }) }, noStore);
   } catch (err) {

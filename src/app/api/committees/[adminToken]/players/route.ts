@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { normalizePhone } from "@/lib/live/rules";
-import { issueLoginToken, revokeMemberAccess, setMemberPhone } from "@/lib/live/queries";
+import { renameMember, revokeMemberAccess, setMemberPhone } from "@/lib/live/queries";
 import { adminCommittee, liveErrorResponse } from "@/lib/live/http";
 
 const playerSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("phone"), memberId: z.string().uuid(), phone: z.string().max(30) }),
-  z.object({ action: z.literal("invite"), memberId: z.string().uuid() }),
+  z.object({ action: z.literal("rename"), memberId: z.string().uuid(), name: z.string().max(200) }),
   z.object({ action: z.literal("revoke"), memberId: z.string().uuid() }),
 ]);
 
@@ -29,9 +29,8 @@ export async function POST(request: Request, ctx: RouteContext<"/api/committees/
       await setMemberPhone(committee.id, input.memberId, phone);
       return NextResponse.json({ ok: true, phone });
     }
-    if (input.action === "invite") {
-      const token = await issueLoginToken(committee.id, input.memberId);
-      return NextResponse.json({ ok: true, path: `/in/${token}` });
+    if (input.action === "rename") {
+      return NextResponse.json({ ok: true, name: await renameMember(committee.id, input.memberId, input.name) });
     }
     await revokeMemberAccess(committee.id, input.memberId);
     return NextResponse.json({ ok: true });

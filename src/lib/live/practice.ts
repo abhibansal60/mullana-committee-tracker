@@ -162,7 +162,7 @@ export async function createPracticeCommittee(real: Committee): Promise<Committe
         openingBid: s.openingBid,
         bidIncrement: s.bidIncrement,
         roundSeconds: s.roundSeconds,
-        allowPhoneLogin: true,
+        allowPhoneLogin: false,
       });
     }
   } catch (err) {

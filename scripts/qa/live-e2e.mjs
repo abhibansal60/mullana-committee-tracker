@@ -38,6 +38,12 @@ const dup = await admin("POST", "/players", { action: "phone", memberId: players
 assert(dup.status === 400, "duplicate phone rejected: " + dup.data.error);
 await admin("POST", "/players", { action: "phone", memberId: players[1].id, phone: phones[players[1].name] });
 
+// Phone login is off by default
+const offBy = await j("POST", "/api/login", { phone: "+91 " + phones[players[0].name] });
+assert(offBy.status === 404, "phone login off by default: " + offBy.data.error);
+let r = await admin("PUT", "/live/settings", { openingBid: 10000, bidIncrement: 500, roundSeconds: 10, allowPhoneLogin: true });
+assert(r.status === 200, "phone login switched on for this test");
+
 // Logins
 const cookies = {};
 for (const p of players) {
@@ -48,25 +54,32 @@ for (const p of players) {
 const bad = await j("POST", "/api/login", { phone: "9000000000" });
 assert(bad.status === 404, "unknown phone 404");
 
-// Invite link
-const inv = await admin("POST", "/players", { action: "invite", memberId: players[3].id });
-const inRes = await fetch(B + inv.data.path, { redirect: "manual" });
-if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
-  // With Google sign-in on, the invite leads to the one-time "Continue with Google" step instead.
-  assert(inRes.status === 307 && !inRes.headers.get("set-cookie")?.includes("player=") && inRes.headers.get("location")?.includes("/login?invite="), "invite link leads to Google linking " + inRes.headers.get("location"));
-} else {
-  assert(inRes.status === 307 && inRes.headers.get("set-cookie")?.includes("player="), "invite link sets cookie + redirects " + inRes.headers.get("location"));
-}
+// Rename
+r = await admin("POST", "/players", { action: "rename", memberId: players[3].id, name: "Rohit K" });
+assert(r.status === 200 && r.data.name === "Rohit K", "rename member");
+r = await admin("POST", "/players", { action: "rename", memberId: players[3].id, name: "abhi" });
+assert(r.status === 400, "duplicate name rejected: " + r.data.error);
+await admin("POST", "/players", { action: "rename", memberId: players[3].id, name: "Rohit" });
+
+// Shared join link
+const playersHtml = await (await fetch(`${B}/admin/${AT}/players`, { headers: { cookie: adminCookie } })).text();
+const code = playersHtml.match(/joinCode\\":\\"([^"\\]+)/)?.[1];
+assert(code, "join code on the players page");
+const joinRes = await fetch(`${B}/join/${code}`, { redirect: "manual" });
+const joinHtml = await joinRes.text();
+assert(joinRes.status === 200 && !joinHtml.includes("isn&#x27;t valid"), "join page renders for a genuine code");
+const junk = await (await fetch(`${B}/join/${code.slice(0, -1)}x`)).text();
+assert(junk.includes("t valid"), "tampered join code rejected");
+r = await j("POST", "/api/join", { code, memberId: players[3].id });
+assert(r.status === 401, "claiming a name needs Google sign-in: " + r.data.error);
 
 const play = (name, m, p, b) => j(m, p, b, cookies[name]);
 
 // No room: bid fails
-let r = await play("Abhi", "POST", "/api/play/bid", { expectedBid: null, amount: 10000 });
+r = await play("Abhi", "POST", "/api/play/bid", { expectedBid: null, amount: 10000 });
 assert(r.status === 404, "bid with no room: " + r.data.error);
 
 // Save settings, open lobby
-r = await admin("PUT", "/live/settings", { openingBid: 10000, bidIncrement: 500, roundSeconds: 10, allowPhoneLogin: true });
-assert(r.status === 200, "save settings");
 r = await admin("PUT", "/live/settings", { openingBid: 10250, bidIncrement: 500, roundSeconds: 10, allowPhoneLogin: true });
 assert(r.status === 400, "bad settings rejected: " + r.data.error);
 
@@ -172,6 +185,28 @@ r = await admin("POST", "/live", { action: "finalize" });
 assert(r.status === 400, "finalize without runner-up rejected: " + r.data.error);
 r = await admin("POST", "/live", { action: "finalize", runnerUpMemberId: players.find(p => p.name === "Neha").id });
 assert(r.status === 200, "finalized with picked runner-up");
+// Host bids for members who aren't in the room
+r = await admin("POST", "/live", { action: "open", monthId: monthIds[2].id });
+assert(r.status === 200, "opened month 4");
+await admin("POST", "/live", { action: "start" });
+await new Promise(res => setTimeout(res, 3700));
+const idOf = (n) => players.find(p => p.name === n).id;
+r = await admin("POST", "/live", { action: "bid", memberId: idOf("Karan"), expectedBid: null, amount: 10000 });
+assert(r.status === 200 && r.data.state.session.leaderId === idOf("Karan"), "host bids for Karan");
+r = await admin("POST", "/live", { action: "bid", memberId: idOf("Karan"), expectedBid: 10000, amount: 10500 });
+assert(r.status === 400, "host can't outbid the member's own bid: " + r.data.error);
+r = await admin("POST", "/live", { action: "bid", memberId: idOf("Shubham"), expectedBid: 10000, amount: 10500 });
+assert(r.status === 403, "host can't bid for the holder: " + r.data.error);
+r = await admin("POST", "/live", { action: "bid", memberId: idOf("Rahul"), expectedBid: 10000, amount: 10500 });
+assert(r.status === 403, "host can't bid for a past winner: " + r.data.error);
+r = await admin("POST", "/live", { action: "bid", memberId: idOf("Deepak"), expectedBid: 10000, amount: 10500 });
+assert(r.status === 200 && r.data.state.session.runnerUpId === idOf("Karan"), "host bids for Deepak, Karan is runner-up");
+r = await admin("POST", "/live", { action: "bid", memberId: idOf("Vikas"), expectedBid: 10000, amount: 11000 });
+assert(r.status === 409, "stale host bid rejected: " + r.data.error);
+await admin("POST", "/live", { action: "hammer" });
+r = await admin("POST", "/live", { action: "finalize" });
+assert(r.status === 200, "finalized host-bid auction");
+
 // Revoke Abhi
 await admin("POST", "/players", { action: "revoke", memberId: players.find(p => p.name === "Abhi").id });
 r = await play("Abhi", "GET", "/api/play/state");

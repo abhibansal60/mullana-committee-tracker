@@ -21,7 +21,6 @@ import {
   type Member,
 } from "@/lib/db/queries";
 import { computeMonthDues, type CommitteeTerms } from "@/lib/calc/dues";
-import { generateToken, sha256Hex } from "@/lib/auth/tokens";
 import { PLAYER_COOKIE, verifyPlayerSession } from "@/lib/auth/player";
 import {
   COUNTDOWN_MS,
@@ -82,7 +81,7 @@ export async function getLiveSettings(committee: Committee): Promise<LiveSetting
     .where(eq(liveSettings.committeeId, committee.id))
     .limit(1);
   const row = rows[0];
-  if (!row) return { ...defaultLiveSettings(committeeTerms(committee)), allowPhoneLogin: true };
+  if (!row) return { ...defaultLiveSettings(committeeTerms(committee)), allowPhoneLogin: false };
   return {
     openingBid: row.openingBid,
     bidIncrement: row.bidIncrement,
@@ -123,6 +122,20 @@ async function ensureMemberInCommittee(committeeId: string, memberId: string): P
   return rows[0];
 }
 
+/** Lets the holder fix a member's name (typos, nicknames). Names stay unique so the join list is unambiguous. */
+export async function renameMember(committeeId: string, memberId: string, name: string): Promise<string> {
+  const trimmed = name.trim().replace(/\s+/g, " ");
+  if (!trimmed) throw new LiveError("Enter a name");
+  if (trimmed.length > 100) throw new LiveError("That name is too long");
+  await ensureMemberInCommittee(committeeId, memberId);
+  const all = await getMembersForCommittee(committeeId);
+  if (all.some((m) => m.id !== memberId && m.name.toLowerCase() === trimmed.toLowerCase())) {
+    throw new LiveError("Another member already has that name");
+  }
+  await db.update(members).set({ name: trimmed }).where(eq(members.id, memberId));
+  return trimmed;
+}
+
 export async function setMemberPhone(
   committeeId: string,
   memberId: string,
@@ -148,23 +161,6 @@ export async function setMemberPhone(
     });
 }
 
-/**
- * Issues a fresh personal login link token. The previous invite link stops
- * working, but anyone already logged in stays logged in.
- */
-export async function issueLoginToken(committeeId: string, memberId: string): Promise<string> {
-  await ensureMemberInCommittee(committeeId, memberId);
-  const token = generateToken();
-  await db
-    .insert(memberProfiles)
-    .values({ memberId, committeeId, loginTokenHash: sha256Hex(token) })
-    .onConflictDoUpdate({
-      target: memberProfiles.memberId,
-      set: { loginTokenHash: sha256Hex(token), updatedAt: new Date() },
-    });
-  return token;
-}
-
 /** Logs the member out everywhere and kills their invite link. */
 export async function revokeMemberAccess(committeeId: string, memberId: string): Promise<void> {
   await ensureMemberInCommittee(committeeId, memberId);
@@ -175,7 +171,6 @@ export async function revokeMemberAccess(committeeId: string, memberId: string):
       target: memberProfiles.memberId,
       set: {
         sessionEpoch: sql`${memberProfiles.sessionEpoch} + 1`,
-        loginTokenHash: null,
         updatedAt: new Date(),
       },
     });
@@ -194,66 +189,67 @@ export interface LoginMatch {
   epoch: number;
 }
 
-/** Who an invite token belongs to, without logging them in. */
-export async function findLoginToken(token: string): Promise<LoginMatch | null> {
+/** Members nobody has claimed with a Google account yet - the names shown on the join page. */
+export async function getUnclaimedMembers(committeeId: string): Promise<{ id: string; name: string }[]> {
   const rows = await db
-    .select({
-      committeeId: memberProfiles.committeeId,
-      committeeName: committees.name,
-      memberId: memberProfiles.memberId,
-      memberName: members.name,
-      epoch: memberProfiles.sessionEpoch,
-    })
-    .from(memberProfiles)
-    .innerJoin(members, eq(members.id, memberProfiles.memberId))
-    .innerJoin(committees, eq(committees.id, memberProfiles.committeeId))
-    .where(eq(memberProfiles.loginTokenHash, sha256Hex(token)))
-    .limit(1);
-  return rows[0] ?? null;
+    .select({ id: members.id, name: members.name, googleSub: memberGoogleAccounts.googleSub })
+    .from(members)
+    .leftJoin(memberGoogleAccounts, eq(memberGoogleAccounts.memberId, members.id))
+    .where(eq(members.committeeId, committeeId))
+    .orderBy(asc(members.name));
+  return rows.filter((r) => !r.googleSub).map(({ id, name }) => ({ id, name }));
 }
 
-export async function consumeLoginToken(token: string): Promise<LoginMatch | null> {
-  const match = await findLoginToken(token);
-  if (!match) return null;
-  await db
-    .update(memberProfiles)
-    .set({ lastLoginAt: new Date() })
-    .where(eq(memberProfiles.memberId, match.memberId));
-  return match;
+/** The Google account (email) each member joined with, for the holder's Players page. */
+export async function getGoogleEmails(committeeId: string): Promise<Map<string, string | null>> {
+  const rows = await db
+    .select({ memberId: memberGoogleAccounts.memberId, email: memberGoogleAccounts.email })
+    .from(memberGoogleAccounts)
+    .where(eq(memberGoogleAccounts.committeeId, committeeId));
+  return new Map(rows.map((r) => [r.memberId, r.email]));
 }
 
 /**
- * Links a Google account to the member whose invite token this is, and uses
- * up the invite: from then on that member logs in with Google (or by phone,
- * if the holder allows it), never with the old link.
+ * A member picks their own name on the join page: this Google account
+ * becomes theirs. Names already taken can't be picked, and one Google account
+ * can only be one member of a committee.
  */
-export async function linkGoogleAccount(
-  token: string,
+export async function claimMember(
+  committeeId: string,
+  memberId: string,
   googleSub: string,
   email: string | null
-): Promise<LoginMatch | null> {
-  const match = await consumeLoginToken(token);
-  if (!match) return null;
-  const clash = await db
-    .select({ memberId: memberGoogleAccounts.memberId })
-    .from(memberGoogleAccounts)
-    .where(and(eq(memberGoogleAccounts.committeeId, match.committeeId), eq(memberGoogleAccounts.googleSub, googleSub)))
-    .limit(1);
-  if (clash[0] && clash[0].memberId !== match.memberId) {
-    throw new LiveError("This Google account is already linked to someone else in this committee", 409);
+): Promise<LoginMatch> {
+  const member = await ensureMemberInCommittee(committeeId, memberId);
+  const taken = new LiveError("Someone already picked that name", 409);
+  let inserted: { memberId: string }[];
+  try {
+    inserted = await db
+      .insert(memberGoogleAccounts)
+      .values({ memberId, committeeId, googleSub, email })
+      .onConflictDoNothing({ target: memberGoogleAccounts.memberId })
+      .returning({ memberId: memberGoogleAccounts.memberId });
+  } catch (err) {
+    // The (committee, google account) unique index: this account is already someone else here.
+    if ((err as { code?: string; cause?: { code?: string } })?.code === "23505" || (err as { cause?: { code?: string } })?.cause?.code === "23505") {
+      throw new LiveError("This Google account has already joined as someone else", 409);
+    }
+    throw err;
   }
-  await db
-    .insert(memberGoogleAccounts)
-    .values({ memberId: match.memberId, committeeId: match.committeeId, googleSub, email })
-    .onConflictDoUpdate({
-      target: memberGoogleAccounts.memberId,
-      set: { googleSub, email, createdAt: new Date() },
-    });
-  await db
-    .update(memberProfiles)
-    .set({ loginTokenHash: null, updatedAt: new Date() })
-    .where(eq(memberProfiles.memberId, match.memberId));
-  return match;
+  if (inserted.length === 0) throw taken;
+  const committee = await db.select({ name: committees.name }).from(committees).where(eq(committees.id, committeeId)).limit(1);
+  const profile = await db
+    .select({ epoch: memberProfiles.sessionEpoch })
+    .from(memberProfiles)
+    .where(eq(memberProfiles.memberId, memberId))
+    .limit(1);
+  return {
+    committeeId,
+    committeeName: committee[0]?.name ?? "",
+    memberId,
+    memberName: member.name,
+    epoch: profile[0]?.epoch ?? 0,
+  };
 }
 
 /** Every committee membership linked to this Google account. */
@@ -290,7 +286,7 @@ export async function findLoginsByPhone(phone: string): Promise<LoginMatch[]> {
     .leftJoin(liveSettings, eq(liveSettings.committeeId, memberProfiles.committeeId))
     .where(eq(memberProfiles.phone, phone));
   return rows
-    .filter((r) => r.allowPhoneLogin !== false)
+    .filter((r) => r.allowPhoneLogin === true)
     .map((r) => ({
       committeeId: r.committeeId,
       committeeName: r.committeeName,
@@ -320,10 +316,24 @@ export async function getOtherMemberships(memberId: string): Promise<LoginMatch[
 }
 
 export async function markLoggedIn(memberId: string): Promise<void> {
+  const member = await db.select({ committeeId: members.committeeId }).from(members).where(eq(members.id, memberId)).limit(1);
+  if (!member[0]) return;
+  // Members who join with Google may not have a profile row yet.
   await db
-    .update(memberProfiles)
-    .set({ lastLoginAt: new Date() })
-    .where(eq(memberProfiles.memberId, memberId));
+    .insert(memberProfiles)
+    .values({ memberId, committeeId: member[0].committeeId, lastLoginAt: new Date() })
+    .onConflictDoUpdate({ target: memberProfiles.memberId, set: { lastLoginAt: new Date() } });
+}
+
+/** True when at least one committee lets members log in with a phone number. */
+export async function anyPhoneLoginEnabled(): Promise<boolean> {
+  try {
+    const rows = await db.select({ id: liveSettings.committeeId }).from(liveSettings).where(eq(liveSettings.allowPhoneLogin, true)).limit(1);
+    return rows.length > 0;
+  } catch (err) {
+    if (isLiveSchemaMissing(err)) return false;
+    throw err;
+  }
 }
 
 export interface Player {

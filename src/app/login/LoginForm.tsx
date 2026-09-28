@@ -10,11 +10,13 @@ export default function LoginForm({
   initialError,
   googleHref,
   googleChoices,
+  phoneEnabled,
 }: {
   next: string;
   initialError: string | null;
   googleHref: string | null; // null while Google sign-in is off
   googleChoices: Choice[] | null; // Google account linked to several committees
+  phoneEnabled: boolean; // some committee lets members log in by number
 }) {
   const router = useRouter();
   const [phone, setPhone] = useState("");
@@ -69,6 +71,19 @@ export default function LoginForm({
           </button>
         ))}
       </div>
+    );
+  }
+
+  if (!phoneEnabled) {
+    return googleHref ? (
+      <div className="space-y-4">
+        <GoogleButton href={googleHref} />
+        {error && (
+          <p className="rounded-xl border border-[var(--ember)] bg-[var(--ember)]/15 px-3 py-2.5 text-sm text-[var(--ember)]">{error}</p>
+        )}
+      </div>
+    ) : (
+      <p className="text-center text-sm text-[var(--arena-muted)]">Login isn&apos;t switched on yet. Ask your committee holder.</p>
     );
   }
 

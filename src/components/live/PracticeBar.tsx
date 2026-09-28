@@ -64,7 +64,7 @@ export default function PracticeBar({
         )}
       </div>
       <p className="mt-3 text-xs text-[var(--arena-muted)]">
-        Friends can join too: they log in with their number and pick the practice committee.
+        Friends can join too: share this room&apos;s join link from the Players page.
       </p>
     </div>
   );

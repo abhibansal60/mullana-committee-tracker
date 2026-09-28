@@ -189,7 +189,7 @@ export const liveSettings = pgTable("live_settings", {
   openingBid: integer("opening_bid").notNull(), // rupees, multiple of 500
   bidIncrement: integer("bid_increment").notNull(), // rupees, multiple of 500
   roundSeconds: integer("round_seconds").notNull(), // countdown after each bid
-  allowPhoneLogin: boolean("allow_phone_login").notNull().default(true),
+  allowPhoneLogin: boolean("allow_phone_login").notNull().default(false),
   updatedAt: timestamp("updated_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
