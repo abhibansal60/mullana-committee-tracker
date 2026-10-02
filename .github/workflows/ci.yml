@@ -37,7 +37,9 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npx drizzle-kit migrate
+      # Same as production, which is updated with `npm run db:push`: the schema comes from schema.ts.
+      # (drizzle/*.sql migrations are behind it - no member_google_accounts table.)
+      - run: npx drizzle-kit push --force
       # PageProps / RouteContext globals come from route types Next generates into .next/.
       - run: npx next typegen
       - run: npx tsc --noEmit
