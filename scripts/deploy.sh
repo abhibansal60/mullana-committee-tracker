@@ -22,6 +22,7 @@ fi
 
 echo "==> Verifying $BRANCH (tsc, eslint, tests)"
 git checkout "$BRANCH"
+npx next typegen
 npx tsc --noEmit
 npx eslint .
 npm test
