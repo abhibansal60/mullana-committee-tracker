@@ -10,6 +10,7 @@ import {
   months,
 } from "@/lib/db/schema";
 import {
+  committeeTerms,
   getCommitteeByAdminTokenHash,
   getEligibleAuctionMembers,
   getMembersForCommittee,
@@ -18,7 +19,7 @@ import {
 } from "@/lib/db/queries";
 import { generateToken, sha256Hex } from "@/lib/auth/tokens";
 import { PRACTICE_PREFIX, computeMaxBid, isPracticeCommittee, jumpBidOptions } from "./rules";
-import { committeeTerms, isLiveSchemaMissing, LiveError, placeBid, type AuctionSession } from "./queries";
+import { isLiveSchemaMissing, LiveError, placeBid, type AuctionSession } from "./queries";
 
 /**
  * Practice room: a throwaway copy of a real committee that the holder can

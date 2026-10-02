@@ -3,7 +3,8 @@ import { z } from "zod";
 import { addReaction, getDisplaySession, getLiveState, openLobby, placeBid, runHostAction } from "@/lib/live/queries";
 import { runBots } from "@/lib/live/practice";
 import { isPracticeCommittee } from "@/lib/live/rules";
-import { adminCommittee, liveErrorResponse, noStore } from "@/lib/live/http";
+import { adminCommittee } from "@/lib/auth/guard";
+import { liveErrorResponse, noStore } from "@/lib/live/http";
 
 export async function GET(request: Request, ctx: RouteContext<"/api/committees/[adminToken]/live">) {
   const { adminToken } = await ctx.params;

@@ -13,7 +13,8 @@ export type Member = typeof members.$inferSelect;
 export type Month = typeof months.$inferSelect;
 export type Payment = typeof payments.$inferSelect;
 
-function committeeTerms(committee: Committee): CommitteeTerms {
+/** The committee fields the dues and bid calculations need. */
+export function committeeTerms(committee: Committee): CommitteeTerms {
   return {
     memberCount: committee.memberCount,
     monthlyContribution: committee.monthlyContribution,

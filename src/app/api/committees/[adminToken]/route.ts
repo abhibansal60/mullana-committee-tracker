@@ -1,29 +1,18 @@
 import { NextResponse } from "next/server";
 import { updateSettingsSchema } from "@/lib/validation/schemas";
 import {
-  getCommitteeByAdminTokenHash,
   hasAnyAuctionRecorded,
   updateCommitteeSettings,
 } from "@/lib/db/queries";
-import { sha256Hex } from "@/lib/auth/tokens";
-import { requireAdminForCommittee, UnauthorizedError } from "@/lib/auth/guard";
+import { adminCommittee } from "@/lib/auth/guard";
 
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ adminToken: string }> }
 ) {
   const { adminToken } = await params;
-  const committee = await getCommitteeByAdminTokenHash(sha256Hex(adminToken));
-  if (!committee) return NextResponse.json({ error: "Not found" }, { status: 404 });
-
-  try {
-    await requireAdminForCommittee(committee.id);
-  } catch (err) {
-    if (err instanceof UnauthorizedError) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-    throw err;
-  }
+  const committee = await adminCommittee(adminToken);
+  if (committee instanceof NextResponse) return committee;
 
   const body = await request.json().catch(() => null);
   const parsed = updateSettingsSchema.safeParse(body);

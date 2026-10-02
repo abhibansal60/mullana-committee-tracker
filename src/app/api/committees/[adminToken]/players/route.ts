@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { normalizePhone } from "@/lib/live/rules";
 import { renameMember, revokeMemberAccess, setMemberPhone } from "@/lib/live/queries";
-import { adminCommittee, liveErrorResponse } from "@/lib/live/http";
+import { adminCommittee } from "@/lib/auth/guard";
+import { liveErrorResponse } from "@/lib/live/http";
 
 const playerSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("phone"), memberId: z.string().uuid(), phone: z.string().max(30) }),

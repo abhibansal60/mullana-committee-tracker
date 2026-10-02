@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { saveLiveSettings } from "@/lib/live/queries";
-import { adminCommittee, liveErrorResponse } from "@/lib/live/http";
+import { adminCommittee } from "@/lib/auth/guard";
+import { liveErrorResponse } from "@/lib/live/http";
 
 const settingsSchema = z.object({
   openingBid: z.number().int(),

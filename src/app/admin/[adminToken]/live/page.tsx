@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { requireAdminByToken } from "@/lib/auth/guard";
+import { committeeTerms } from "@/lib/db/queries";
 import {
-  committeeTerms,
   getAuctionableMonths,
   getLiveSettings,
   getLiveState,

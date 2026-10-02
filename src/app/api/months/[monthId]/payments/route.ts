@@ -5,7 +5,7 @@ import {
   getMembersForCommittee,
   addPayment,
 } from "@/lib/db/queries";
-import { requireAdminForCommittee, UnauthorizedError } from "@/lib/auth/guard";
+import { adminGate } from "@/lib/auth/guard";
 
 export async function POST(
   request: Request,
@@ -16,14 +16,8 @@ export async function POST(
   if (!found) return NextResponse.json({ error: "Not found" }, { status: 404 });
   const { committee } = found;
 
-  try {
-    await requireAdminForCommittee(committee.id);
-  } catch (err) {
-    if (err instanceof UnauthorizedError) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-    throw err;
-  }
+  const denied = await adminGate(committee.id);
+  if (denied) return denied;
 
   const body = await request.json().catch(() => null);
   const parsed = paymentSchema.safeParse(body);

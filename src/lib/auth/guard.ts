@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
+import { NextResponse } from "next/server";
 import {
   getCommitteeByAdminTokenHash,
   getCommitteeByMemberTokenHash,
@@ -8,43 +9,45 @@ import {
 import { sha256Hex } from "./tokens";
 import { verifySession, sessionCookieName } from "./session";
 
-export class UnauthorizedError extends Error {}
-
 /**
- * Used by `/admin/[adminToken]/layout.tsx` (except the `/login` page).
- * Only reads the session cookie - never mutates it, which keeps this safe to
- * call during plain Server Component rendering (Next.js forbids cookie
- * mutation outside Server Actions / Route Handlers).
+ * Whether this browser holds a valid admin session for the committee. The one
+ * check every admin page and route goes through. Only reads the session
+ * cookie - never mutates it, which keeps it safe to call during plain Server
+ * Component rendering (Next.js forbids cookie mutation outside Server
+ * Actions / Route Handlers).
  */
+export async function isAdminFor(committeeId: string): Promise<boolean> {
+  const cookieStore = await cookies();
+  const cookie = cookieStore.get(sessionCookieName("admin", committeeId));
+  const session = cookie ? await verifySession(cookie.value) : null;
+  return !!session && session.role === "admin" && session.sub === committeeId;
+}
+
+/** Used by `/admin/[adminToken]/layout.tsx` (except the `/login` page). */
 export async function requireAdminByToken(
   adminToken: string
 ): Promise<Committee> {
   const committee = await getCommitteeByAdminTokenHash(sha256Hex(adminToken));
   if (!committee) notFound();
-
-  const cookieStore = await cookies();
-  const cookie = cookieStore.get(sessionCookieName("admin", committee.id));
-  const session = cookie ? await verifySession(cookie.value) : null;
-  if (!session || session.role !== "admin" || session.sub !== committee.id) {
-    redirect(`/admin/${adminToken}/login`);
-  }
+  if (!(await isAdminFor(committee.id))) redirect(`/admin/${adminToken}/login`);
   return committee;
 }
 
+/** For API routes addressed by adminToken: the committee, or the 404/401 to return instead. */
+export async function adminCommittee(adminToken: string): Promise<Committee | NextResponse> {
+  const committee = await getCommitteeByAdminTokenHash(sha256Hex(adminToken));
+  if (!committee) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  return (await adminGate(committee.id)) ?? committee;
+}
+
 /**
- * Used inside API route handlers that only have a resource id (monthId,
- * paymentId, ...), not the adminToken. Throws UnauthorizedError - callers
- * should catch and return a 401.
+ * For API routes that only have a resource id (monthId, paymentId, ...), once
+ * they've looked up its committee: null to carry on, or the 401 to return.
  */
-export async function requireAdminForCommittee(
-  committeeId: string
-): Promise<void> {
-  const cookieStore = await cookies();
-  const cookie = cookieStore.get(sessionCookieName("admin", committeeId));
-  const session = cookie ? await verifySession(cookie.value) : null;
-  if (!session || session.role !== "admin" || session.sub !== committeeId) {
-    throw new UnauthorizedError("Admin session required");
-  }
+export async function adminGate(committeeId: string): Promise<NextResponse | null> {
+  return (await isAdminFor(committeeId))
+    ? null
+    : NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 }
 
 /**

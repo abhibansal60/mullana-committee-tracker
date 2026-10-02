@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCommitteeByAdminTokenHash } from "@/lib/db/queries";
 import { sha256Hex } from "@/lib/auth/tokens";
-import { requireAdminForCommittee, UnauthorizedError } from "@/lib/auth/guard";
+import { isAdminFor } from "@/lib/auth/guard";
 import { signSession, sessionCookieName, SESSION_COOKIE_MAX_AGE } from "@/lib/auth/session";
 import {
   createPracticeCommittee,
@@ -24,13 +24,8 @@ export async function GET(request: Request, ctx: RouteContext<"/admin/[adminToke
   const real = await getCommitteeByAdminTokenHash(sha256Hex(adminToken));
   if (!real || isPracticeCommittee(real)) return new NextResponse("Not found", { status: 404 });
 
-  try {
-    await requireAdminForCommittee(real.id);
-  } catch (err) {
-    if (err instanceof UnauthorizedError) {
-      return NextResponse.redirect(new URL(`/admin/${adminToken}/login`, url));
-    }
-    throw err;
+  if (!(await isAdminFor(real.id))) {
+    return NextResponse.redirect(new URL(`/admin/${adminToken}/login`, url));
   }
 
   if (url.searchParams.has("delete")) {

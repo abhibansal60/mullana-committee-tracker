@@ -14,13 +14,14 @@ import {
   months,
 } from "@/lib/db/schema";
 import {
+  committeeTerms,
   getEligibleAuctionMembers,
   getMembersForCommittee,
   recordAuctionResult,
   type Committee,
   type Member,
 } from "@/lib/db/queries";
-import { computeMonthDues, type CommitteeTerms } from "@/lib/calc/dues";
+import { computeMonthDues } from "@/lib/calc/dues";
 import { PLAYER_COOKIE, verifyPlayerSession } from "@/lib/auth/player";
 import {
   COUNTDOWN_MS,
@@ -58,14 +59,6 @@ export function isLiveSchemaMissing(err: unknown): boolean {
   const e = err as { code?: string; cause?: { code?: string }; message?: string };
   const code = e?.code ?? e?.cause?.code;
   return code === "42P01" || /relation "(auction_|live_settings|member_profiles|member_google_accounts)/.test(e?.message ?? "");
-}
-
-export function committeeTerms(c: Committee): CommitteeTerms {
-  return {
-    memberCount: c.memberCount,
-    monthlyContribution: c.monthlyContribution,
-    runnerUpBonus: c.runnerUpBonus,
-  };
 }
 
 // --- Settings ------------------------------------------------------------
