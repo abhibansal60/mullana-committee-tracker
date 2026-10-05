@@ -234,7 +234,7 @@ export default function HostPanel({
                       onChange={(e) => setSettings({ ...settings, allowPhoneLogin: e.target.checked })}
                       className="h-4 w-4 accent-[var(--gold)]"
                     />
-                    Also allow login with a mobile number (off by default)
+                    Also allow login with a mobile number (off by default; anyone who knows the number can log in as that member)
                   </label>
                   <div className="flex gap-2">
                     <button type="button" className="host-button-primary flex-1" disabled={b("settings")} onClick={saveSettings}>

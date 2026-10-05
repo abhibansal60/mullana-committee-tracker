@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getPaymentWithCommitteeId, deletePayment } from "@/lib/db/queries";
+import { getPaymentWithCommittee, deletePayment } from "@/lib/db/queries";
 import { adminGate } from "@/lib/auth/guard";
 
 export async function DELETE(
@@ -7,10 +7,10 @@ export async function DELETE(
   { params }: { params: Promise<{ paymentId: string }> }
 ) {
   const { paymentId } = await params;
-  const found = await getPaymentWithCommitteeId(paymentId);
+  const found = await getPaymentWithCommittee(paymentId);
   if (!found) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  const denied = await adminGate(found.committeeId);
+  const denied = await adminGate(found.committee);
   if (denied) return denied;
 
   await deletePayment(paymentId);

@@ -33,6 +33,13 @@ export async function PATCH(
         { status: 400 }
       );
     }
+    // Dues for recorded months are computed from the current bonus, so changing it would rewrite the past.
+    if (updates.runnerUpBonus !== committee.runnerUpBonus && (await hasAnyAuctionRecorded(committee.id))) {
+      return NextResponse.json(
+        { error: "runnerUpBonus can no longer be changed - an auction has already been recorded for this committee" },
+        { status: 400 }
+      );
+    }
   }
 
   if (updates.reservedMonthNumber !== undefined) {

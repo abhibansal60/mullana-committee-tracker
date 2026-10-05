@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatRupees } from "@/lib/money";
 import PaymentForm from "./PaymentForm";
+import { paymentIds } from "@/lib/payment-ids";
 import type { MemberMonthView } from "@/lib/db/queries";
 
 export default function PaymentsSection({
@@ -18,6 +19,7 @@ export default function PaymentsSection({
   const [mode, setMode] = useState<"cash" | "upi">("cash");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const ids = useRef(paymentIds()).current;
 
   const membersByName = [...members].sort((a, b) =>
     a.memberName.localeCompare(b.memberName)
@@ -46,7 +48,8 @@ export default function PaymentsSection({
     );
   }
 
-  const selectedMembers = members.filter((m) => selected.has(m.memberId));
+  // Skips anyone already paid in full, e.g. saved by a request whose reply was lost before a retry.
+  const selectedMembers = members.filter((m) => selected.has(m.memberId) && remaining(m) > 0);
   const selectedTotal = selectedMembers.reduce(
     (sum, m) => sum + remaining(m),
     0
@@ -62,6 +65,7 @@ export default function PaymentsSection({
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
+              id: ids.get(m.memberId, remaining(m), mode),
               memberId: m.memberId,
               amount: remaining(m),
               mode,
@@ -74,11 +78,13 @@ export default function PaymentsSection({
         setError(
           `${failedCount} of ${selectedMembers.length} payments failed to save — check below and retry.`
         );
-      }
+      } else ids.clear();
       setSelected(new Set());
       router.refresh();
     } catch {
+      // Some may have saved: show them. A retry reuses the same ids, so none is recorded twice.
       setError("Network error - please try again");
+      router.refresh();
     } finally {
       setSubmitting(false);
     }
