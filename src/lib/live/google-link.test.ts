@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 // Talks to a real database, so it only runs against a LOCAL Postgres
-// (see scripts/README.md); anywhere else it's skipped.
+// (start one with `eval "$(scripts/test-db.sh)"`); anywhere else it's skipped.
 try {
   process.loadEnvFile(".env.local");
 } catch {}
