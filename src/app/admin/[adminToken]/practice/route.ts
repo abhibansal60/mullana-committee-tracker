@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getCommitteeByAdminTokenHash } from "@/lib/db/queries";
 import { sha256Hex } from "@/lib/auth/tokens";
 import { isAdminFor } from "@/lib/auth/guard";
-import { signSession, sessionCookieName, SESSION_COOKIE_MAX_AGE } from "@/lib/auth/session";
+import { signSession, sessionCookieName, SESSION_COOKIE_MAX_AGE, pinStamp } from "@/lib/auth/session";
 import {
   createPracticeCommittee,
   deletePracticeCommittee,
@@ -24,7 +24,7 @@ export async function GET(request: Request, ctx: RouteContext<"/admin/[adminToke
   const real = await getCommitteeByAdminTokenHash(sha256Hex(adminToken));
   if (!real || isPracticeCommittee(real)) return new NextResponse("Not found", { status: 404 });
 
-  if (!(await isAdminFor(real.id))) {
+  if (!(await isAdminFor(real))) {
     return NextResponse.redirect(new URL(`/admin/${adminToken}/login`, url));
   }
 
@@ -40,7 +40,7 @@ export async function GET(request: Request, ctx: RouteContext<"/admin/[adminToke
   const response = NextResponse.redirect(
     new URL(`/admin/${practiceToken}/live?parent=${encodeURIComponent(adminToken)}`, url)
   );
-  response.cookies.set(sessionCookieName("admin", practice.id), await signSession({ sub: practice.id, role: "admin" }), {
+  response.cookies.set(sessionCookieName("admin", practice.id), await signSession({ sub: practice.id, role: "admin", pin: pinStamp(practice.adminPinHash) }), {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",

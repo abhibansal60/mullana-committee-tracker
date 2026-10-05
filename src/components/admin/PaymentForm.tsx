@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatRupees } from "@/lib/money";
 import StatusBadge from "@/components/StatusBadge";
+import { paymentIds } from "@/lib/payment-ids";
 import type { MemberMonthView } from "@/lib/db/queries";
 
 export default function PaymentForm({
@@ -25,6 +26,7 @@ export default function PaymentForm({
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const ids = useRef(paymentIds()).current;
 
   async function addPayment(e: React.FormEvent) {
     e.preventDefault();
@@ -34,13 +36,14 @@ export default function PaymentForm({
       const res = await fetch(`/api/months/${monthId}/payments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ memberId: member.memberId, amount, mode }),
+        body: JSON.stringify({ id: ids.get(member.memberId, amount, mode), memberId: member.memberId, amount, mode }),
       });
       const data = await res.json();
       if (!res.ok) {
         setError(data.error ?? "Failed to add payment");
         return;
       }
+      ids.clear();
       router.refresh();
     } catch {
       setError("Network error - please try again");

@@ -16,7 +16,7 @@ export async function POST(
   if (!found) return NextResponse.json({ error: "Not found" }, { status: 404 });
   const { committee } = found;
 
-  const denied = await adminGate(committee.id);
+  const denied = await adminGate(committee);
   if (denied) return denied;
 
   const body = await request.json().catch(() => null);
@@ -38,6 +38,7 @@ export async function POST(
   }
 
   const payment = await addPayment({
+    id: input.id,
     monthId,
     memberId: input.memberId,
     amount: input.amount,

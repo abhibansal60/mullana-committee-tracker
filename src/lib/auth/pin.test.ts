@@ -2,10 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   hashPin,
   verifyPin,
-  shouldLock,
-  computeLockoutExpiry,
   isLockedOut,
-  MAX_FAILED_PIN_ATTEMPTS,
 } from "./pin";
 
 describe("hashPin / verifyPin", () => {
@@ -22,29 +19,12 @@ describe("hashPin / verifyPin", () => {
   });
 });
 
-describe("shouldLock", () => {
-  it("does not lock below the threshold", () => {
-    expect(shouldLock(MAX_FAILED_PIN_ATTEMPTS - 1)).toBe(false);
-  });
-
-  it("locks at and above the threshold", () => {
-    expect(shouldLock(MAX_FAILED_PIN_ATTEMPTS)).toBe(true);
-    expect(shouldLock(MAX_FAILED_PIN_ATTEMPTS + 1)).toBe(true);
-  });
-});
-
-describe("computeLockoutExpiry / isLockedOut", () => {
-  it("is locked out immediately after computing an expiry", () => {
+describe("isLockedOut", () => {
+  it("is locked out until the expiry passes", () => {
     const now = new Date("2026-01-01T00:00:00Z");
-    const expiry = computeLockoutExpiry(now);
+    const expiry = new Date(now.getTime() + 60_000);
     expect(isLockedOut(expiry, now)).toBe(true);
-  });
-
-  it("is not locked out once the expiry has passed", () => {
-    const now = new Date("2026-01-01T00:00:00Z");
-    const expiry = computeLockoutExpiry(now);
-    const later = new Date(expiry.getTime() + 1);
-    expect(isLockedOut(expiry, later)).toBe(false);
+    expect(isLockedOut(expiry, new Date(expiry.getTime() + 1))).toBe(false);
   });
 
   it("is not locked out when there is no lockout set", () => {

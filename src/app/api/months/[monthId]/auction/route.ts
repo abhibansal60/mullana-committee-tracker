@@ -18,7 +18,7 @@ export async function POST(
   if (!found) return NextResponse.json({ error: "Not found" }, { status: 404 });
   const { month, committee } = found;
 
-  const denied = await adminGate(committee.id);
+  const denied = await adminGate(committee);
   if (denied) return denied;
 
   const body = await request.json().catch(() => null);
@@ -53,8 +53,12 @@ export async function POST(
     );
   }
 
+  const alreadyRecorded = () =>
+    NextResponse.json({ error: "This month's result is already recorded" }, { status: 409 });
+  if (month.auctionRecordedAt) return alreadyRecorded();
+
   if (input.isReserved) {
-    await recordAuctionResult(monthId, { isReserved: true });
+    if (!(await recordAuctionResult(monthId, { isReserved: true }))) return alreadyRecorded();
     return NextResponse.json({ ok: true });
   }
 
@@ -104,12 +108,13 @@ export async function POST(
     );
   }
 
-  await recordAuctionResult(monthId, {
+  const recorded = await recordAuctionResult(monthId, {
     isReserved: false,
     winnerMemberId: input.winnerMemberId,
     winningBid: input.winningBid,
     runnerUpMemberId: input.runnerUpMemberId,
   });
+  if (!recorded) return alreadyRecorded();
 
   return NextResponse.json({ ok: true });
 }

@@ -660,12 +660,13 @@ export async function runHostAction(committee: Committee, input: HostAction): Pr
       );
       if (!claimed) throw new LiveError("The room changed - try again", 409);
       try {
-        await recordAuctionResult(s.monthId, {
+        const recorded = await recordAuctionResult(s.monthId, {
           isReserved: false,
           winnerMemberId: s.leaderMemberId,
           winningBid: s.currentBid,
           runnerUpMemberId: runnerUpId,
         });
+        if (!recorded) throw new LiveError("This month's result was already recorded on the month page", 409);
       } catch (err) {
         // Don't leave the room "finalized" with nothing recorded: put it back
         // so the holder can confirm again.

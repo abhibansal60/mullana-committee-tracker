@@ -48,8 +48,10 @@ export const auctionResultSchema = z.union([
 ]);
 
 export const paymentSchema = z.object({
+  /** Client-chosen, so a retried request after a network error can't record the payment twice. */
+  id: z.string().uuid().optional(),
   memberId: z.string().uuid(),
-  amount: z.number().int().positive(),
+  amount: z.number().int().positive().max(10_000_000),
   mode: z.enum(["cash", "upi"]),
   note: z.string().trim().max(200).optional(),
 });

@@ -7,7 +7,7 @@ import {
   type Committee,
 } from "@/lib/db/queries";
 import { sha256Hex } from "./tokens";
-import { verifySession, sessionCookieName } from "./session";
+import { verifySession, sessionCookieName, pinStamp } from "./session";
 
 /**
  * Whether this browser holds a valid admin session for the committee. The one
@@ -16,11 +16,16 @@ import { verifySession, sessionCookieName } from "./session";
  * Component rendering (Next.js forbids cookie mutation outside Server
  * Actions / Route Handlers).
  */
-export async function isAdminFor(committeeId: string): Promise<boolean> {
+export async function isAdminFor(committee: Pick<Committee, "id" | "adminPinHash">): Promise<boolean> {
   const cookieStore = await cookies();
-  const cookie = cookieStore.get(sessionCookieName("admin", committeeId));
+  const cookie = cookieStore.get(sessionCookieName("admin", committee.id));
   const session = cookie ? await verifySession(cookie.value) : null;
-  return !!session && session.role === "admin" && session.sub === committeeId;
+  return (
+    !!session &&
+    session.role === "admin" &&
+    session.sub === committee.id &&
+    session.pin === pinStamp(committee.adminPinHash)
+  );
 }
 
 /** Used by `/admin/[adminToken]/layout.tsx` (except the `/login` page). */
@@ -29,7 +34,7 @@ export async function requireAdminByToken(
 ): Promise<Committee> {
   const committee = await getCommitteeByAdminTokenHash(sha256Hex(adminToken));
   if (!committee) notFound();
-  if (!(await isAdminFor(committee.id))) redirect(`/admin/${adminToken}/login`);
+  if (!(await isAdminFor(committee))) redirect(`/admin/${adminToken}/login`);
   return committee;
 }
 
@@ -37,15 +42,15 @@ export async function requireAdminByToken(
 export async function adminCommittee(adminToken: string): Promise<Committee | NextResponse> {
   const committee = await getCommitteeByAdminTokenHash(sha256Hex(adminToken));
   if (!committee) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  return (await adminGate(committee.id)) ?? committee;
+  return (await adminGate(committee)) ?? committee;
 }
 
 /**
  * For API routes that only have a resource id (monthId, paymentId, ...), once
  * they've looked up its committee: null to carry on, or the 401 to return.
  */
-export async function adminGate(committeeId: string): Promise<NextResponse | null> {
-  return (await isAdminFor(committeeId))
+export async function adminGate(committee: Pick<Committee, "id" | "adminPinHash">): Promise<NextResponse | null> {
+  return (await isAdminFor(committee))
     ? null
     : NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 }

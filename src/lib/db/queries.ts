@@ -1,4 +1,4 @@
-import { and, asc, eq, isNotNull, ne, sql } from "drizzle-orm";
+import { and, asc, eq, isNotNull, isNull, lte, ne, or, sql } from "drizzle-orm";
 import { db } from "./index";
 import { committees, members, months, payments } from "./schema";
 import {
@@ -7,6 +7,7 @@ import {
   type MonthDuesResult,
 } from "@/lib/calc/dues";
 import { getPaymentStatus, type PaymentStatus } from "@/lib/calc/status";
+import { MAX_FAILED_PIN_ATTEMPTS, PIN_LOCKOUT_DURATION_MS } from "@/lib/auth/pin";
 
 export type Committee = typeof committees.$inferSelect;
 export type Member = typeof members.$inferSelect;
@@ -184,39 +185,27 @@ export interface RecordAuctionedResultInput {
   runnerUpMemberId: string;
 }
 
+/** Records a month's result once. False when it was already recorded (a second form submit or a live room). */
 export async function recordAuctionResult(
   monthId: string,
   input: RecordReservedAuctionInput | RecordAuctionedResultInput
-): Promise<void> {
-  if (input.isReserved) {
-    await db
-      .update(months)
-      .set({
-        winnerMemberId: null,
-        winningBid: null,
-        runnerUpMemberId: null,
-        auctionRecordedAt: new Date(),
-        updatedAt: new Date(),
-      })
-      .where(eq(months.id, monthId));
-    return;
-  }
-
-  await db
+): Promise<boolean> {
+  const result = input.isReserved
+    ? { winnerMemberId: null, winningBid: null, runnerUpMemberId: null }
+    : { winnerMemberId: input.winnerMemberId, winningBid: input.winningBid, runnerUpMemberId: input.runnerUpMemberId };
+  const rows = await db
     .update(months)
-    .set({
-      winnerMemberId: input.winnerMemberId,
-      winningBid: input.winningBid,
-      runnerUpMemberId: input.runnerUpMemberId,
-      auctionRecordedAt: new Date(),
-      updatedAt: new Date(),
-    })
-    .where(eq(months.id, monthId));
+    .set({ ...result, auctionRecordedAt: new Date(), updatedAt: new Date() })
+    .where(and(eq(months.id, monthId), isNull(months.auctionRecordedAt)))
+    .returning({ id: months.id });
+  return rows.length > 0;
 }
 
 // --- Payments --------------------------------------------------------------
 
+/** Inserts once per id: a repeated id returns the payment already saved. */
 export async function addPayment(input: {
+  id?: string;
   monthId: string;
   memberId: string;
   amount: number;
@@ -226,23 +215,32 @@ export async function addPayment(input: {
   const [payment] = await db
     .insert(payments)
     .values({
+      id: input.id,
       monthId: input.monthId,
       memberId: input.memberId,
       amount: input.amount,
       mode: input.mode,
       note: input.note,
     })
+    .onConflictDoNothing({ target: payments.id })
     .returning();
-  return payment;
+  if (payment) return payment;
+  const [existing] = await db
+    .select()
+    .from(payments)
+    .where(and(eq(payments.id, input.id!), eq(payments.monthId, input.monthId), eq(payments.memberId, input.memberId)));
+  if (!existing) throw new Error("Payment id already used");
+  return existing;
 }
 
-export async function getPaymentWithCommitteeId(
+export async function getPaymentWithCommittee(
   paymentId: string
-): Promise<{ payment: Payment; committeeId: string } | null> {
+): Promise<{ payment: Payment; committee: Committee } | null> {
   const rows = await db
-    .select({ payment: payments, committeeId: months.committeeId })
+    .select({ payment: payments, committee: committees })
     .from(payments)
     .innerJoin(months, eq(payments.monthId, months.id))
+    .innerJoin(committees, eq(months.committeeId, committees.id))
     .where(eq(payments.id, paymentId))
     .limit(1);
   return rows[0] ?? null;
@@ -463,22 +461,22 @@ export async function regenerateMemberToken(
 
 // --- PIN attempt tracking --------------------------------------------------
 
-export async function recordFailedPinAttempt(
-  committee: Committee
-): Promise<{ failedAttempts: number }> {
-  const failedAttempts = committee.pinFailedAttempts + 1;
-  await db
+/**
+ * Count a PIN attempt before checking it, in one statement, so parallel guesses can't all read the same
+ * counter. The attempt that reaches the limit also starts the lockout. null when the PIN is locked; a correct
+ * PIN then calls resetPinAttempts.
+ */
+export async function claimPinAttempt(committeeId: string): Promise<{ locksNow: boolean } | null> {
+  const next = sql`${committees.pinFailedAttempts} + 1`;
+  const rows = await db
     .update(committees)
-    .set({ pinFailedAttempts: failedAttempts })
-    .where(eq(committees.id, committee.id));
-  return { failedAttempts };
-}
-
-export async function lockPin(committeeId: string, lockedUntil: Date): Promise<void> {
-  await db
-    .update(committees)
-    .set({ pinLockedUntil: lockedUntil })
-    .where(eq(committees.id, committeeId));
+    .set({
+      pinFailedAttempts: next,
+      pinLockedUntil: sql`case when ${next} >= ${MAX_FAILED_PIN_ATTEMPTS} then now() + ${sql.raw(`interval '${PIN_LOCKOUT_DURATION_MS / 1000} seconds'`)} else null end`,
+    })
+    .where(and(eq(committees.id, committeeId), or(isNull(committees.pinLockedUntil), lte(committees.pinLockedUntil, sql`now()`))))
+    .returning({ failedAttempts: committees.pinFailedAttempts });
+  return rows[0] ? { locksNow: rows[0].failedAttempts >= MAX_FAILED_PIN_ATTEMPTS } : null;
 }
 
 export async function resetPinAttempts(committeeId: string): Promise<void> {
