@@ -48,7 +48,8 @@ export default function PaymentsSection({
     );
   }
 
-  const selectedMembers = members.filter((m) => selected.has(m.memberId));
+  // Skips anyone already paid in full, e.g. saved by a request whose reply was lost before a retry.
+  const selectedMembers = members.filter((m) => selected.has(m.memberId) && remaining(m) > 0);
   const selectedTotal = selectedMembers.reduce(
     (sum, m) => sum + remaining(m),
     0
