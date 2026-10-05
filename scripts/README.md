@@ -4,6 +4,16 @@ Tooling built while doing the frontend redesign + profit/loss work, kept
 around so the same manual steps don't get re-derived (and re-paid-for in
 tokens) every session.
 
+## Local test database
+
+```
+eval "$(scripts/test-db.sh)" && npm test
+```
+
+The DB-backed tests (`*.test.ts` that import `@/lib/db`) skip unless `DATABASE_URL` points at localhost. `test-db.sh`
+starts a throwaway Postgres 17 from conda in `/tmp` on a free port, pushes the schema, and prints the env to export.
+`scripts/test-db.sh stop` stops it.
+
 ## Deploying
 
 ```
