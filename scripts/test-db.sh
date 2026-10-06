@@ -11,7 +11,7 @@ if [ "${1:-}" = stop ]; then "$ENV/bin/pg_ctl" -D "$DATA" stop -m fast >&2; exit
 if [ ! -x "$ENV/bin/pg_ctl" ]; then
   echo "installing Postgres 17 into $ENV (one time)..." >&2
   source "$(conda info --base)/etc/profile.d/conda.sh"
-  conda create -y -q -p "$ENV" -c conda-forge postgresql=17 >&2
+  conda create -y -q -p "$ENV" --override-channels -c conda-forge postgresql=17 >&2
 fi
 if ! "$ENV/bin/pg_ctl" -D "$DATA" status >/dev/null 2>&1; then
   [ -d "$DATA" ] || "$ENV/bin/initdb" -D "$DATA" -U postgres --auth=trust >/dev/null
