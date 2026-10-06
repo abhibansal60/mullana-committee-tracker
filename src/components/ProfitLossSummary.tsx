@@ -23,57 +23,62 @@ export default function ProfitLossSummary({
   const running = computeRunningProfitOrLoss(monthlyContribution, months);
   const runningIsProfit = running >= 0;
 
-  return (
-    <section>
-      <h2 className="eyebrow mb-2 px-1">Profit &amp; loss</h2>
+  const sign = (n: number) => `${n >= 0 ? "+" : "−"}${formatRupees(Math.abs(n))}`;
 
-      <div className="card p-5">
-        <span className="eyebrow">Running total so far</span>
-        <p
-          className={`money mt-1 text-2xl font-medium ${
-            runningIsProfit ? "text-[var(--cloth)]" : "text-[var(--stamp)]"
-          }`}
-        >
-          {runningIsProfit ? "+" : "−"}
-          {formatRupees(Math.abs(running))}
-        </p>
-        <p className="mt-1.5 text-xs text-[var(--muted)]">
+  return (
+    <details className="group card">
+      <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-3 px-4 py-3">
+        <span>
+          <span className="eyebrow block">Profit &amp; loss</span>
+          <span className="text-xs text-[var(--muted)]">Running total so far</span>
+        </span>
+        <span className="flex items-center gap-2">
+          <span
+            className={`money text-lg font-medium ${
+              runningIsProfit ? "text-[var(--cloth)]" : "text-[var(--stamp)]"
+            }`}
+          >
+            {sign(running)}
+          </span>
+          <span aria-hidden className="text-[var(--muted)] transition-transform group-open:rotate-90">›</span>
+        </span>
+      </summary>
+
+      <div className="border-t border-[var(--border-subtle)] px-4 pb-1">
+        <p className="pt-3 text-xs text-[var(--muted)]">
           Each month compares the winning bid to the flat{" "}
           {formatRupees(monthlyContribution)} contribution. A high bid gives
           away a bigger discount (a loss for the pot); a low bid keeps more
           in it (a profit) &mdash; later months can pull the total back up.
         </p>
-      </div>
-
-      <ul className="card mt-3 divide-y divide-[var(--border-subtle)] px-4">
-        {auctionedMonths.map((m) => {
-          const figure = computeMonthProfitOrLoss(monthlyContribution, m);
-          const isProfit = figure >= 0;
-          return (
-            <li
-              key={m.id}
-              className="flex items-center justify-between gap-3 py-3 text-sm"
-            >
-              <span>
-                Month {m.monthNumber}
-                {m.winnerName && (
-                  <span className="block text-xs text-[var(--muted)]">
-                    {m.winnerName}
-                  </span>
-                )}
-              </span>
-              <span
-                className={`money font-medium ${
-                  isProfit ? "text-[var(--cloth)]" : "text-[var(--stamp)]"
-                }`}
+        <ul className="mt-2 divide-y divide-[var(--border-subtle)]">
+          {auctionedMonths.map((m) => {
+            const figure = computeMonthProfitOrLoss(monthlyContribution, m);
+            return (
+              <li
+                key={m.id}
+                className="flex items-center justify-between gap-3 py-3 text-sm"
               >
-                {isProfit ? "+" : "−"}
-                {formatRupees(Math.abs(figure))}
-              </span>
-            </li>
-          );
-        })}
-      </ul>
-    </section>
+                <span>
+                  Month {m.monthNumber}
+                  {m.winnerName && (
+                    <span className="block text-xs text-[var(--muted)]">
+                      {m.winnerName}
+                    </span>
+                  )}
+                </span>
+                <span
+                  className={`money font-medium ${
+                    figure >= 0 ? "text-[var(--cloth)]" : "text-[var(--stamp)]"
+                  }`}
+                >
+                  {sign(figure)}
+                </span>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+    </details>
   );
 }
