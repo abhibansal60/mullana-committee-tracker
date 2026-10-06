@@ -20,18 +20,18 @@ export default async function AdminMonthDetailPage({
   const eligibleMembers = await getEligibleAuctionMembers(committee.id, monthId);
 
   return (
-    <div className="mx-auto max-w-lg space-y-6 px-5 py-8">
+    <div className="mx-auto max-w-lg space-y-5 px-4 py-4 md:py-8">
       <Link
         href={`/admin/${adminToken}`}
-        className="text-sm text-[var(--muted)] hover:text-[var(--foreground)]"
+        className="-ml-1 inline-flex min-h-11 items-center px-1 text-sm text-[var(--muted)] hover:text-[var(--foreground)]"
       >
-        ← Back
+        ← Home
       </Link>
 
       <div>
         <h1 className="flex items-center gap-2 font-[family-name:var(--font-display)] text-2xl font-semibold">
           Month {detail.month.monthNumber}
-          {detail.isReserved && <Stamp tone="muted">Reserved</Stamp>}
+          {detail.isReserved && <Stamp tone="muted">Holder&apos;s month</Stamp>}
         </h1>
         {detail.dues && (
           <p className="money mt-1.5 text-sm text-[var(--muted)]">
@@ -49,11 +49,10 @@ export default async function AdminMonthDetailPage({
         />
       ) : (
         <div>
-          <h2 className="eyebrow mb-2 px-1">Payments</h2>
           <PaymentsSection monthId={monthId} members={detail.members} />
 
           <details className="mt-5">
-            <summary className="cursor-pointer text-xs font-medium text-[var(--muted)] hover:text-[var(--foreground)]">
+            <summary className="flex min-h-11 cursor-pointer items-center px-1 text-xs font-medium text-[var(--muted)] hover:text-[var(--foreground)]">
               Edit auction result
             </summary>
             <div className="mt-3">
