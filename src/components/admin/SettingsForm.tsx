@@ -99,7 +99,7 @@ export default function SettingsForm({
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-5">
       <form onSubmit={saveGeneral} className="card space-y-4 p-4">
         <h2 className="eyebrow">General</h2>
 
@@ -146,12 +146,12 @@ export default function SettingsForm({
           )}
         </label>
 
-        <label className="flex items-center gap-2.5">
+        <label className="flex min-h-11 items-center gap-3">
           <input
             type="checkbox"
             checked={showProfitLoss}
             onChange={(e) => setShowProfitLoss(e.target.checked)}
-            className="h-4 w-4"
+            className="h-5 w-5 accent-[var(--cloth)]"
           />
           <span className="field-label mb-0">
             Show profit &amp; loss to members
@@ -169,7 +169,7 @@ export default function SettingsForm({
           </p>
         )}
 
-        <button type="submit" className="btn-primary">
+        <button type="submit" className="btn-primary min-h-11">
           Save
         </button>
       </form>
@@ -213,7 +213,7 @@ export default function SettingsForm({
           </p>
         )}
 
-        <button type="submit" className="btn-primary">
+        <button type="submit" className="btn-primary min-h-11">
           Change PIN
         </button>
       </form>
@@ -228,7 +228,7 @@ export default function SettingsForm({
           type="button"
           onClick={regenerateMemberLink}
           disabled={regenerating}
-          className="btn-secondary"
+          className="btn-secondary min-h-11"
         >
           {regenerating ? "Regenerating…" : "Regenerate read-only link"}
         </button>

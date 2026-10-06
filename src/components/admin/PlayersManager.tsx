@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Avatar from "@/components/live/Avatar";
 import Stamp from "@/components/Stamp";
+import ShareJoinLink from "./ShareJoinLink";
 
 export interface PlayerRow {
   memberId: string;
@@ -43,7 +44,7 @@ export default function PlayersManager({
   const [phones, setPhones] = useState<Record<string, string>>(Object.fromEntries(initialPlayers.map((p) => [p.memberId, p.phone ?? ""])));
   const [busy, setBusy] = useState<string | null>(null);
   const [message, setMessage] = useState<{ memberId: string; text: string; bad?: boolean } | null>(null);
-  const [copied, setCopied] = useState(false);
+  const [editing, setEditing] = useState<string | null>(null);
 
   async function call(body: object) {
     const res = await fetch(`/api/committees/${adminToken}/players`, {
@@ -58,25 +59,6 @@ export default function PlayersManager({
 
   function update(memberId: string, patch: Partial<PlayerRow>) {
     setPlayers((ps) => ps.map((p) => (p.memberId === memberId ? { ...p, ...patch } : p)));
-  }
-
-  function joinUrl() {
-    return `${window.location.origin}/join/${joinCode}`;
-  }
-
-  async function copyLink() {
-    try {
-      await navigator.clipboard.writeText(joinUrl());
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    } catch {
-      // clipboard blocked - the link is shown on screen anyway
-    }
-  }
-
-  function shareLink() {
-    const text = `${committeeName} is on the app 🪙 Tap to join with your Google account and pick your name: ${joinUrl()}\n\nOn committee day you can bid live from your phone.`;
-    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
   }
 
   async function run(p: PlayerRow, key: string, fn: () => Promise<string>) {
@@ -116,104 +98,136 @@ export default function PlayersManager({
     });
   }
 
-  const joined = players.filter((p) => p.joined).length;
+  const joined = players.filter((p) => p.joined);
+  const notJoined = players.filter((p) => !p.joined);
 
-  return (
-    <div className="space-y-4">
-      <div className="card p-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <span className="eyebrow">Joined the app</span>
-            <p className="money mt-0.5 text-2xl font-medium">
-              {joined}/{players.length}
+  function row(p: PlayerRow) {
+    const nameDirty = (names[p.memberId] ?? p.name).trim() !== p.name;
+    const phoneDirty = (phones[p.memberId] ?? "") !== (p.phone ?? "");
+    const open = editing === p.memberId;
+    return (
+      <li key={p.memberId} className="px-4 py-2.5">
+        <div className="flex min-h-11 items-center gap-3">
+          <Avatar name={p.name} size={34} />
+          <div className="min-w-0 flex-1">
+            <p className="flex items-center gap-2 text-sm font-medium">
+              <span className="truncate">{p.name}</span>
+              {p.isHolder && <Stamp tone="muted">Holder</Stamp>}
+            </p>
+            <p className="truncate text-xs text-[var(--muted)]">
+              {p.joined ? p.email ?? "Joined" : "Not joined yet"}
+              {p.lastSeenAt ? ` · seen ${since(p.lastSeenAt)}` : ""}
             </p>
           </div>
+          <button
+            type="button"
+            className="btn-secondary min-h-11 shrink-0 px-3 text-xs"
+            aria-expanded={open}
+            onClick={() => setEditing(open ? null : p.memberId)}
+          >
+            {open ? "Done" : "Edit"}
+          </button>
+        </div>
+
+        {open && (
+          <div className="mt-2 space-y-2 pb-1 pl-[2.875rem]">
+            <form
+              className="flex gap-2"
+              onSubmit={(e) => {
+                e.preventDefault();
+                saveName(p);
+              }}
+            >
+              <input
+                aria-label={`Name for ${p.name}`}
+                value={names[p.memberId] ?? ""}
+                maxLength={100}
+                onChange={(e) => setNames((n) => ({ ...n, [p.memberId]: e.target.value }))}
+                className="input min-w-0 flex-1"
+              />
+              <button type="submit" className="btn-primary min-h-11" disabled={!nameDirty || busy === `name-${p.memberId}`}>
+                Save
+              </button>
+            </form>
+
+            {phoneLogin && (
+              <form
+                className="flex gap-2"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  savePhone(p);
+                }}
+              >
+                <div className="flex min-w-0 flex-1 items-center rounded-md border border-[var(--border-strong)] bg-[var(--surface)] focus-within:border-[var(--cloth)]">
+                  <span className="money pl-3 text-sm text-[var(--muted)]">+91</span>
+                  <input
+                    type="tel"
+                    inputMode="numeric"
+                    aria-label={`Mobile number for ${p.name}`}
+                    placeholder="Mobile number (optional)"
+                    value={phones[p.memberId] ?? ""}
+                    onChange={(e) => setPhones((d) => ({ ...d, [p.memberId]: e.target.value }))}
+                    className="money w-full bg-transparent px-2 py-2.5 text-[15px] outline-none"
+                  />
+                </div>
+                <button type="submit" className="btn-primary min-h-11" disabled={!phoneDirty || busy === `phone-${p.memberId}`}>
+                  Save
+                </button>
+              </form>
+            )}
+
+            {(p.joined || p.lastLoginAt) && (
+              <button
+                type="button"
+                className="btn-danger min-h-11 w-full text-xs"
+                onClick={() => reset(p)}
+                disabled={busy === `reset-${p.memberId}`}
+              >
+                Reset {p.name} · unlink their Google account
+              </button>
+            )}
+          </div>
+        )}
+
+        {message?.memberId === p.memberId && (
+          <p className={`mt-1 pl-[2.875rem] text-xs ${message.bad ? "text-[var(--stamp)]" : "text-[var(--cloth)]"}`}>{message.text}</p>
+        )}
+      </li>
+    );
+  }
+
+  return (
+    <div className="space-y-5">
+      <div className="card p-4">
+        <span className="eyebrow">Joined the app</span>
+        <p className="money mt-0.5 text-2xl font-medium">
+          {joined.length}
+          <span className="text-base text-[var(--muted)]"> of {players.length}</span>
+        </p>
+        <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[var(--border-subtle)]">
+          <div className="h-full rounded-full bg-[var(--cloth)]" style={{ width: `${(joined.length / players.length) * 100}%` }} />
         </div>
         <p className="mt-3 text-sm text-[var(--muted)]">
           Send everyone the same link. They sign in with Google and pick their own name.
         </p>
-        <div className="mt-3 flex gap-2">
-          <button type="button" className="btn-primary flex-1 bg-[#1f8f4e] hover:bg-[#187a41]" onClick={shareLink}>
-            💬 Share on WhatsApp
-          </button>
-          <button type="button" className="btn-secondary" onClick={copyLink}>
-            {copied ? "Copied!" : "Copy link"}
-          </button>
+        <div className="mt-3">
+          <ShareJoinLink committeeName={committeeName} joinCode={joinCode} />
         </div>
       </div>
 
-      <ul className="space-y-3">
-        {players.map((p) => {
-          const nameDirty = (names[p.memberId] ?? p.name).trim() !== p.name;
-          const phoneDirty = (phones[p.memberId] ?? "") !== (p.phone ?? "");
-          return (
-            <li key={p.memberId} className="card p-4">
-              <form
-                className="flex items-center gap-3"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  saveName(p);
-                }}
-              >
-                <Avatar name={p.name} size={38} />
-                <input
-                  aria-label={`Name for ${p.name}`}
-                  value={names[p.memberId] ?? ""}
-                  maxLength={100}
-                  onChange={(e) => setNames((n) => ({ ...n, [p.memberId]: e.target.value }))}
-                  className="min-w-0 flex-1 rounded-md border border-transparent bg-transparent px-2 py-1.5 text-sm font-medium outline-none transition-colors hover:border-[var(--border-strong)] focus-visible:border-[var(--cloth)] focus-visible:bg-[var(--surface)]"
-                />
-                {p.isHolder && <Stamp tone="muted">Holder</Stamp>}
-                {nameDirty && (
-                  <button type="submit" className="btn-primary px-3 py-1.5" disabled={busy === `name-${p.memberId}`}>
-                    Save
-                  </button>
-                )}
-                {(p.joined || p.lastLoginAt) && !nameDirty && (
-                  <button type="button" className="btn-danger px-3 py-1.5 text-xs" onClick={() => reset(p)} disabled={busy === `reset-${p.memberId}`}>
-                    Reset
-                  </button>
-                )}
-              </form>
-              <p className="mt-1 truncate pl-[3.25rem] text-xs text-[var(--muted)]">
-                {p.joined ? `Joined${p.email ? ` · ${p.email}` : ""}` : "Not joined yet"}
-                {p.lastSeenAt ? ` · seen ${since(p.lastSeenAt)}` : ""}
-              </p>
+      {notJoined.length > 0 && (
+        <section>
+          <h2 className="eyebrow mb-2 px-1">Not joined yet · {notJoined.length}</h2>
+          <ul className="card divide-y divide-[var(--border-subtle)]">{notJoined.map(row)}</ul>
+        </section>
+      )}
+      {joined.length > 0 && (
+        <section>
+          <h2 className="eyebrow mb-2 px-1">Joined · {joined.length}</h2>
+          <ul className="card divide-y divide-[var(--border-subtle)]">{joined.map(row)}</ul>
+        </section>
+      )}
 
-              {phoneLogin && (
-                <form
-                  className="mt-2 flex gap-2"
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    savePhone(p);
-                  }}
-                >
-                  <div className="flex flex-1 items-center rounded-md border border-[var(--border-strong)] bg-[var(--surface)] focus-within:border-[var(--cloth)]">
-                    <span className="money pl-3 text-sm text-[var(--muted)]">+91</span>
-                    <input
-                      type="tel"
-                      inputMode="numeric"
-                      placeholder="Mobile number (optional)"
-                      value={phones[p.memberId] ?? ""}
-                      onChange={(e) => setPhones((d) => ({ ...d, [p.memberId]: e.target.value }))}
-                      className="money w-full bg-transparent px-2 py-2.5 text-[15px] outline-none"
-                    />
-                  </div>
-                  {phoneDirty && (
-                    <button type="submit" className="btn-primary" disabled={busy === `phone-${p.memberId}`}>
-                      Save
-                    </button>
-                  )}
-                </form>
-              )}
-
-              {message?.memberId === p.memberId && (
-                <p className={`mt-2 text-xs ${message.bad ? "text-[var(--stamp)]" : "text-[var(--cloth)]"}`}>{message.text}</p>
-              )}
-            </li>
-          );
-        })}
-      </ul>
       <p className="px-1 text-xs text-[var(--muted)]">
         Members who haven&apos;t joined can still take part: on committee day you can bid for anyone from the Live room.
         {phoneLogin

@@ -48,9 +48,8 @@ export default async function PlayersPage({ params }: PageProps<"/admin/[adminTo
     });
 
   return (
-    <div className="mx-auto max-w-lg px-5 py-8">
-      <span className="eyebrow">Committee</span>
-      <h1 className="mt-1.5 mb-6 font-[family-name:var(--font-display)] text-2xl font-semibold">Players</h1>
+    <div className="mx-auto max-w-lg px-4 py-5 md:py-8">
+      <h1 className="mb-4 px-1 font-[family-name:var(--font-display)] text-2xl font-semibold">Players</h1>
       <PlayersManager
         adminToken={adminToken}
         committeeName={committee.name}
