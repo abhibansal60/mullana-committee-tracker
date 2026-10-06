@@ -5,6 +5,7 @@
 //   npx next dev -p 3417
 //   node --env-file=.env.local scripts/qa/ux-shots.mjs seed
 //   node --env-file=.env.local scripts/qa/ux-shots.mjs shoot docs/ux/before
+//   node --env-file=.env.local scripts/qa/ux-shots.mjs check   (clicks through, records a payment)
 //   node --env-file=.env.local scripts/qa/ux-shots.mjs cleanup
 //
 // Committees are named "UX QA …"; cleanup deletes only those (and their
@@ -193,6 +194,85 @@ async function shoot(outDir) {
   await browser.close();
 }
 
+async function check() {
+  const { c, memberCookie } = JSON.parse(fs.readFileSync(STATE, "utf8"));
+  const { chromium } = await import("playwright");
+  const browser = await chromium.launch();
+  const host = new URL(B).hostname;
+  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  await ctx.addCookies([c.adminCookie, memberCookie].map((s) => {
+    const [name, ...v] = s.split("=");
+    return { name, value: v.join("="), domain: host, path: "/" };
+  }));
+  const page = await ctx.newPage();
+  const errors = [];
+  page.on("pageerror", (e) => errors.push(e.message));
+  page.on("console", (m) => m.type() === "error" && errors.push(m.text()));
+  const ok = (cond, msg) => {
+    if (!cond) throw new Error("FAIL: " + msg);
+    console.log("ok -", msg);
+  };
+  const aboveFold = async (locator) => {
+    const box = await locator.first().boundingBox();
+    return !!box && box.y + box.height <= 844;
+  };
+  const base = `/admin/${c.adminToken}`;
+
+  await page.goto(B + base);
+  ok(await aboveFold(page.getByText("Start committee day")), "dashboard: committee day button on the first screen");
+  ok(await page.getByText("Not joined yet").isVisible(), "dashboard: not-joined names shown");
+  await page.getByRole("navigation", { name: "Committee" }).getByRole("link", { name: "Players" }).click();
+  await page.waitForURL(/\/players$/);
+  ok(true, "bottom nav: Players");
+  await page.getByRole("button", { name: "Edit" }).first().click();
+  ok(await page.getByRole("textbox", { name: /^Name for / }).isVisible(), "players: Edit opens the name field");
+  await page.getByRole("button", { name: "Done" }).click();
+
+  await page.goto(`${B}${base}/months/${c.month[2]}`);
+  const toCollect = async () => Number((await page.getByText(/^To collect · \d+$/).innerText()).split("·")[1]);
+  const before = await toCollect();
+  await page.getByRole("button", { name: /^Collect ₹/ }).nth(1).click();
+  await page.getByRole("button", { name: "Add" }).click();
+  let after = before;
+  for (let i = 0; i < 50 && after === before; i++) {
+    await page.waitForTimeout(200);
+    after = await toCollect();
+  }
+  ok(after === before - 1, "month: Collect + Add moves the member to Paid");
+  await page.getByLabel(/: payment details$/).first().click();
+  ok(await page.getByRole("button", { name: "Remove" }).first().isVisible(), "month: paid row expands to show Remove");
+  await page.getByText("Select all").click();
+  ok(await page.getByRole("button", { name: "Mark paid" }).isVisible(), "month: select all shows the bulk Mark paid bar");
+
+  await j("POST", `/api/committees/${c.adminToken}/live`, { action: "open", monthId: c.month[3] }, c.adminCookie);
+  try {
+    await page.goto(`${B}${base}/live`);
+    ok(await aboveFold(page.getByRole("button", { name: /Start bidding/ })), "host lobby: Start bidding on the first screen");
+    await page.goto(B + base);
+    ok(await aboveFold(page.getByText("Go to the room")), "dashboard: open room card on the first screen");
+    await page.goto(B + "/play");
+    ok(await aboveFold(page.getByText("Enter the auction room")), "member: enter the room on the first screen");
+  } finally {
+    await j("POST", `/api/committees/${c.adminToken}/live`, { action: "cancel" }, c.adminCookie);
+  }
+  await page.goto(B + "/play");
+  ok(await aboveFold(page.getByText(/^(You owe|Your payments)$/)), "member: what I owe on the first screen");
+
+  await page.goto(`${B}${base}/practice`);
+  await page.waitForURL(/\/live\?parent=/);
+  ok(await page.locator(`a[href="/admin/${c.adminToken}"]`, { hasText: "Exit to real committee" }).isVisible(), "practice host: Exit goes to the real committee");
+  ok(await page.locator(`a[href="${base}/practice?reset=1"]`).isVisible(), "practice host: Reset link");
+  const practiceBase = new URL(page.url()).pathname.replace(/\/live$/, "");
+  await page.goto(B + practiceBase);
+  ok(await page.locator(`a[href="/admin/${c.adminToken}"]`, { hasText: "Exit to real committee" }).isVisible(), "practice dashboard: Exit goes to the real committee");
+  ok(await page.locator(`a[href="${base}/practice?reset=1"]`).isVisible(), "practice dashboard: Reset link");
+  await page.goto(`${B}${base}/practice?delete=1`);
+  ok(page.url().endsWith(`${base}?practice=deleted`), "practice deleted from the real dashboard");
+
+  ok(errors.length === 0, `no page or console errors${errors.length ? ": " + errors.join(" | ") : ""}`);
+  await browser.close();
+}
+
 async function cleanup() {
   const deleted = await withDb(async (db) =>
     (await db.query("delete from committees where name like 'UX QA %' or name like 'Practice · UX QA %' returning name")).rows
@@ -202,8 +282,9 @@ async function cleanup() {
 
 if (cmd === "seed") await seed();
 else if (cmd === "shoot") await shoot(outArg || "docs/ux/shots");
+else if (cmd === "check") await check();
 else if (cmd === "cleanup") await cleanup();
 else {
-  console.error("usage: ux-shots.mjs seed | shoot <dir> | cleanup");
+  console.error("usage: ux-shots.mjs seed | shoot <dir> | check | cleanup");
   process.exit(2);
 }
