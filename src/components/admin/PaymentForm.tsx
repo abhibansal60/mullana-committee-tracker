@@ -27,6 +27,7 @@ export default function PaymentForm({
   const [submitting, setSubmitting] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const remaining = member.amountOwed - member.amountPaid;
   const ids = useRef(paymentIds()).current;
 
@@ -91,7 +92,9 @@ export default function PaymentForm({
             {member.status === "partial" && <StatusBadge status="partial" />}
           </p>
           <p className="money mt-0.5 text-xs text-[var(--muted)]">
-            owed {formatRupees(member.amountOwed)} · paid {formatRupees(member.amountPaid)}
+            {remaining > 0
+              ? `owed ${formatRupees(member.amountOwed)} · paid ${formatRupees(member.amountPaid)}`
+              : member.payments.map((p) => `${p.mode === "cash" ? "Cash" : "UPI"} ${formatRupees(p.amount)}`).join(" + ")}
           </p>
         </div>
         {remaining > 0 ? (
@@ -101,11 +104,20 @@ export default function PaymentForm({
             </button>
           )
         ) : (
-          <StatusBadge status={member.status} />
+          <button
+            type="button"
+            onClick={() => setExpanded(!expanded)}
+            aria-expanded={expanded}
+            aria-label={`${member.memberName}: payment details`}
+            className="-mr-2 flex min-h-11 shrink-0 items-center gap-1.5 px-2"
+          >
+            <StatusBadge status={member.status} />
+            <span aria-hidden className={`text-[var(--muted)] transition-transform ${expanded ? "rotate-90" : ""}`}>›</span>
+          </button>
         )}
       </div>
 
-      {member.payments.length > 0 && (
+      {member.payments.length > 0 && (remaining > 0 || expanded) && (
         <ul className={`mt-1 ${selectable ? "pl-8" : ""}`}>
           {member.payments.map((p) => (
             <li
@@ -161,7 +173,8 @@ export default function PaymentForm({
           </button>
         </form>
       ) : (
-        remaining <= 0 && (
+        remaining <= 0 &&
+        expanded && (
           <button
             type="button"
             onClick={openForm}
