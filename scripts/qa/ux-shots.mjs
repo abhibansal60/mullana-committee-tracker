@@ -105,9 +105,19 @@ async function seed() {
   await j("POST", `/api/months/${c.month[0]}/auction`, { isReserved: true }, c.adminCookie);
   await j("POST", `/api/months/${c.month[1]}/auction`, { isReserved: false, winnerMemberId: c.member.Deepak, winningBid: 14000, runnerUpMemberId: c.member.Rohit }, c.adminCookie);
   await j("POST", `/api/months/${c.month[2]}/auction`, { isReserved: false, winnerMemberId: c.member.Neha, winningBid: 11500, runnerUpMemberId: c.member.Priya }, c.adminCookie);
-  for (const n of NAMES) await pay(0, n, 10000, n.length % 2 ? "cash" : "upi");
-  for (const n of NAMES.slice(0, 9)) await pay(1, n, 8800);
-  for (const n of ["Shubham", "Abhi", "Rohit"]) await pay(2, n, 9000);
+  // Owed amounts come from the month page's own payload, so the seed never re-derives the dues formula.
+  const owed = async (monthIdx) => {
+    const html = await (await fetch(`${B}/admin/${c.adminToken}/months/${c.month[monthIdx]}`, { headers: { cookie: c.adminCookie } })).text();
+    const rows = [...html.matchAll(/memberName\\":\\"([^\\"]+)\\",\\"role\\":\\"\w+\\",\\"amountOwed\\":(\d+)/g)];
+    if (rows.length !== NAMES.length) throw new Error(`found ${rows.length} owed amounts for month ${monthIdx + 1}`);
+    return Object.fromEntries(rows.map((r) => [r[1], Number(r[2])]));
+  };
+  for (const [monthIdx, names] of [[0, NAMES], [1, NAMES.slice(0, 9)], [2, ["Shubham", "Deepak", "Rohit"]]]) {
+    const due = await owed(monthIdx);
+    for (const n of names) await pay(monthIdx, n, due[n], n.length % 2 ? "cash" : "upi");
+  }
+  await pay(1, "Rahul", 5000);
+  await pay(2, "Abhi", 5000);
 
   fs.writeFileSync(STATE, JSON.stringify({ fresh, c, memberCookie }, null, 2));
   console.log("seeded", c.name, "and", fresh.name);
