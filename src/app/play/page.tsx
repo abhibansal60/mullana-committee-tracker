@@ -90,14 +90,21 @@ export default async function PlayHomePage({ searchParams }: PageProps<"/play">)
         )}
 
         {practice && (
-          <div className="rounded-xl border border-dashed border-[var(--practice)] bg-[var(--practice-tint)] px-4 py-3 text-sm">
-            <p className="font-semibold">🧪 You&apos;re in the practice room</p>
-            <p className="mt-0.5 text-[var(--muted)]">Bids and results here are pretend — play around!</p>
+          <div className="space-y-3 rounded-xl border border-dashed border-[var(--practice)] bg-[var(--practice-tint)] px-4 py-3 text-sm">
+            <div>
+              <p className="font-semibold">🧪 You&apos;re in the practice room</p>
+              <p className="mt-0.5 text-[var(--muted)]">Bids and results here are pretend — play around!</p>
+            </div>
+            <SwitchCommittee
+              options={others
+                .filter((o) => !isPracticeCommittee({ name: o.committeeName }))
+                .map((o) => ({ memberId: o.memberId, label: "✕ Exit practice → back to real committee", primary: true }))}
+            />
           </div>
         )}
-        {others.length > 0 && (
+        {!practice && others.length > 0 && (
           <SwitchCommittee
-            options={others.map((o) => ({ memberId: o.memberId, committeeName: o.committeeName }))}
+            options={others.map((o) => ({ memberId: o.memberId, label: `Switch to ${o.committeeName} →` }))}
           />
         )}
 

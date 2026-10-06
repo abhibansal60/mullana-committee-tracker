@@ -4,6 +4,7 @@ import { sha256Hex } from "@/lib/auth/tokens";
 import { isAdminFor } from "@/lib/auth/guard";
 import { signSession, sessionCookieName, SESSION_COOKIE_MAX_AGE, pinStamp } from "@/lib/auth/session";
 import {
+  PRACTICE_PARENT_COOKIE,
   createPracticeCommittee,
   deletePracticeCommittee,
   getPracticeCommittee,
@@ -45,6 +46,13 @@ export async function GET(request: Request, ctx: RouteContext<"/admin/[adminToke
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     path: "/",
+    maxAge: SESSION_COOKIE_MAX_AGE,
+  });
+  response.cookies.set(PRACTICE_PARENT_COOKIE, adminToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/admin",
     maxAge: SESSION_COOKIE_MAX_AGE,
   });
   return response;

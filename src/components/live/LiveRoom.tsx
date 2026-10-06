@@ -318,7 +318,10 @@ export default function LiveRoom({
 
       {state.committee.practice && (
         <div className="bg-[var(--practice-arena)]/20 py-1.5 text-center text-xs font-semibold tracking-wide text-[var(--practice-arena-text)]">
-          🧪 PRACTICE ROOM — nothing here is real
+          🧪 PRACTICE ROOM — nothing here is real ·{" "}
+          <Link href={homeHref} className="underline">
+            Exit
+          </Link>
         </div>
       )}
 

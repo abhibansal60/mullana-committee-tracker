@@ -2,6 +2,8 @@ import Link from "next/link";
 import { requireAdminByToken } from "@/lib/auth/guard";
 import LogoutButton from "./logout-button";
 import { isPracticeCommittee } from "@/lib/live/rules";
+import { getPracticeParentToken } from "@/lib/live/practice";
+import PracticeBanner from "@/components/admin/PracticeBanner";
 
 export default async function ProtectedAdminLayout({
   children,
@@ -12,6 +14,8 @@ export default async function ProtectedAdminLayout({
 }) {
   const { adminToken } = await params;
   const committee = await requireAdminByToken(adminToken);
+  const practice = isPracticeCommittee(committee);
+  const parentAdminToken = practice ? await getPracticeParentToken(committee) : null;
 
   return (
     <div className="min-h-full flex flex-col">
@@ -46,11 +50,7 @@ export default async function ProtectedAdminLayout({
           </div>
         </div>
       </header>
-      {isPracticeCommittee(committee) && (
-        <div className="bg-[var(--practice-tint)] px-5 py-2 text-center text-xs font-semibold text-[var(--practice)]">
-          🧪 Practice copy — nothing here affects the real committee
-        </div>
-      )}
+      {practice && <PracticeBanner parentAdminToken={parentAdminToken} />}
       <main className="flex-1">{children}</main>
     </div>
   );

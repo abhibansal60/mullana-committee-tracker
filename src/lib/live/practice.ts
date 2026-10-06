@@ -1,4 +1,5 @@
 import { createHmac } from "node:crypto";
+import { cookies } from "next/headers";
 import { and, eq, isNotNull, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import {
@@ -41,6 +42,21 @@ function secret(): string {
 /** The practice committee's admin token for a given real committee. */
 export function practiceAdminToken(realCommitteeId: string): string {
   return createHmac("sha256", secret()).update(`practice:${realCommitteeId}`).digest("base64url").slice(0, 32);
+}
+
+/** Cookie the practice door sets so every practice page can link back to the real committee. */
+export const PRACTICE_PARENT_COOKIE = "practice_parent";
+
+/** The real committee's admin token for this practice copy, from the query or the cookie, verified. */
+export async function getPracticeParentToken(
+  practice: Committee,
+  queryParent?: string
+): Promise<string | null> {
+  const candidates = [queryParent, (await cookies()).get(PRACTICE_PARENT_COOKIE)?.value];
+  for (const token of candidates) {
+    if (token && (await verifyPracticeParent(practice, token))) return token;
+  }
+  return null;
 }
 
 export async function getPracticeCommittee(real: Committee): Promise<Committee | null> {

@@ -8,7 +8,7 @@ import {
   isLiveSchemaMissing,
 } from "@/lib/live/queries";
 import { computeMaxBid, isPracticeCommittee, minOpeningBid } from "@/lib/live/rules";
-import { verifyPracticeParent } from "@/lib/live/practice";
+import { getPracticeParentToken } from "@/lib/live/practice";
 import HostConsole from "@/components/live/HostConsole";
 import SchemaMissing from "@/components/live/SchemaMissing";
 
@@ -19,8 +19,8 @@ export default async function HostLivePage({ params, searchParams }: PageProps<"
   const { parent } = await searchParams;
   const committee = await requireAdminByToken(adminToken);
   const practice = isPracticeCommittee(committee);
-  const parentCommittee = practice
-    ? await verifyPracticeParent(committee, typeof parent === "string" ? parent : undefined)
+  const parentAdminToken = practice
+    ? await getPracticeParentToken(committee, typeof parent === "string" ? parent : undefined)
     : null;
 
   let data;
@@ -46,7 +46,7 @@ export default async function HostLivePage({ params, searchParams }: PageProps<"
       maxBid={computeMaxBid(terms)}
       minOpeningBid={minOpeningBid(terms)}
       practice={practice}
-      parentAdminToken={parentCommittee && typeof parent === "string" ? parent : null}
+      parentAdminToken={parentAdminToken}
     />
   );
 }

@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 export default function SwitchCommittee({
   options,
 }: {
-  options: { memberId: string; committeeName: string }[];
+  options: { memberId: string; label: string; primary?: boolean }[];
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState<string | null>(null);
@@ -34,9 +34,9 @@ export default function SwitchCommittee({
           type="button"
           disabled={!!busy}
           onClick={() => go(o.memberId)}
-          className="btn-secondary text-xs"
+          className={o.primary ? "btn-primary w-full" : "btn-secondary text-xs"}
         >
-          {busy === o.memberId ? "Switching…" : `Switch to ${o.committeeName} →`}
+          {busy === o.memberId ? "Switching…" : o.label}
         </button>
       ))}
     </div>

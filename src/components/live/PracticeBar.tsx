@@ -48,13 +48,13 @@ export default function PracticeBar({
               href={`/admin/${parentAdminToken}/practice?reset=1`}
               className="host-button"
               onClick={(e) => {
-                if (!window.confirm("Wipe the practice room and start fresh?")) e.preventDefault();
+                if (!window.confirm("Wipe the practice room (bids, results) and start fresh? You stay in practice.")) e.preventDefault();
               }}
             >
-              ↺ Reset practice
+              ↺ Reset &amp; start fresh
             </a>
-            <a href={`/admin/${parentAdminToken}`} className="host-button">
-              Exit to real committee
+            <a href={`/admin/${parentAdminToken}`} className="host-button-primary">
+              ✕ Exit practice → real committee
             </a>
           </>
         ) : (
