@@ -51,8 +51,9 @@ export default async function AdminMonthDetailPage({
         <div>
           <PaymentsSection monthId={monthId} members={detail.members} />
 
-          <details className="mt-5">
-            <summary className="flex min-h-11 cursor-pointer items-center px-1 text-xs font-medium text-[var(--muted)] hover:text-[var(--foreground)]">
+          <details className="group mt-5">
+            <summary className="flex min-h-11 cursor-pointer list-none items-center gap-1.5 px-1 text-xs font-medium text-[var(--muted)] hover:text-[var(--foreground)]">
+              <span aria-hidden className="transition-transform group-open:rotate-90">›</span>
               Edit auction result
             </summary>
             <div className="mt-3">
