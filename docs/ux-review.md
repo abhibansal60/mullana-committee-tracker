@@ -13,7 +13,7 @@ Page heights at 390px, in phone screens (844px):
 | Admin dashboard (mid-season) | 2.8 |
 | Admin dashboard (fresh committee) | 2.3 |
 | Players | 2.8 |
-| Month (payments) | 2.2 |
+| Month (payments) | 2.3 |
 | Live host console, lobby | 1.7 |
 | Member passbook | 1.5 |
 
@@ -89,7 +89,7 @@ Page heights at 390px, in phone screens (844px):
 ### Settings (`admin-settings-phone.png`)
 
 - Fine for a page used once. Small fixes only: the checkbox is 16px, and there
-  is no log-out on the page.
+  is no log-out on the page (the header has one).
 
 ### Member passbook (`member-passbook-phone.png`)
 
@@ -150,3 +150,35 @@ Page heights at 390px, in phone screens (844px):
 
 Out of scope on purpose: money logic, auth, routes, cookies, link formats, the
 member live room stage, and the `/c/[memberToken]` read-only pages.
+
+## Results
+
+Same seeded data before and after, measured from the screenshots at 390px:
+
+| Page | Before | After |
+| --- | --- | --- |
+| Admin dashboard (mid-season) | 2.8 | 1.8 |
+| Admin dashboard (fresh committee) | 2.3 | 1.5 |
+| Practice dashboard | 2.6 | 1.8 |
+| Players | 2.8 | 1.7 |
+| Month (payments) | 2.3 | 1.7 |
+| Member passbook | 1.5 | 1.3 |
+| Live host console, lobby | 1.7 | 1.8 |
+
+The host lobby is slightly taller because the share buttons are now real
+44px buttons, but "Start bidding" moved from 1.2 screens down to the first
+screen.
+
+`node --env-file=.env.local scripts/qa/ux-shots.mjs check` clicks through the
+redesign at 390px and asserts:
+
+- the committee-day button, the open-room card (host), "Start bidding" (host
+  lobby), "Enter the auction room" (member) and "You owe" (member) are all on
+  the first screen;
+- the bottom nav navigates; Edit on Players opens the name field;
+- on a month, Collect then Add moves a member from "To collect" to "Paid"; a
+  paid row expands to show Remove; Select all shows the bulk bar;
+- practice room Exit links to the real committee and Reset links to
+  `?reset=1`, on both the host console and the practice dashboard; Delete
+  returns to the real dashboard;
+- no page or console errors.
