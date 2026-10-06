@@ -12,9 +12,8 @@ export default async function SettingsPage({
   const reservedMonthLocked = await hasAnyAuctionRecorded(committee.id);
 
   return (
-    <div className="mx-auto max-w-lg px-5 py-8">
-      <span className="eyebrow">Committee</span>
-      <h1 className="mt-1.5 mb-6 font-[family-name:var(--font-display)] text-2xl font-semibold">
+    <div className="mx-auto max-w-lg px-4 py-5 md:py-8">
+      <h1 className="mb-4 px-1 font-[family-name:var(--font-display)] text-2xl font-semibold">
         Settings
       </h1>
       <SettingsForm

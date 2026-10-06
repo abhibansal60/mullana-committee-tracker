@@ -1,8 +1,7 @@
 #!/usr/bin/env node
-// Create or delete a throwaway committee for visual QA. Local dev and prod
-// share one database (DATABASE_URL in .env.local) for this project, so
-// this only ever touches a committee it created itself, matched by exact
-// name - never anything else in that database.
+// Create or delete a throwaway committee for visual QA. It only ever touches
+// a committee it created itself, matched by exact name - never anything else
+// in the database DATABASE_URL points at.
 //
 // Usage (run from the repo root, with the dev server already up):
 //   node --env-file=.env.local scripts/qa/fixture.mjs create "QA Committee" [pin] [baseUrl]
@@ -12,6 +11,7 @@
 // admin/member URLs, tokens, and PIN as JSON - use it, then ALWAYS follow
 // up with `delete` when you're done looking.
 import { neon } from "@neondatabase/serverless";
+import pg from "pg";
 
 const [, , cmd, name, pinOrUrl, maybeBaseUrl] = process.argv;
 
@@ -31,8 +31,17 @@ if (!process.env.DATABASE_URL) {
 }
 
 if (cmd === "delete") {
-  const sql = neon(process.env.DATABASE_URL);
-  const deleted = await sql`delete from committees where name = ${name} returning id, name`;
+  // Same split as src/lib/db/index.ts: Neon's HTTP driver can't reach a plain local Postgres.
+  const url = process.env.DATABASE_URL;
+  let deleted;
+  if (["localhost", "127.0.0.1"].includes(new URL(url).hostname)) {
+    const client = new pg.Client({ connectionString: url });
+    await client.connect();
+    deleted = (await client.query("delete from committees where name = $1 returning id, name", [name])).rows;
+    await client.end();
+  } else {
+    deleted = await neon(url)`delete from committees where name = ${name} returning id, name`;
+  }
   console.log(JSON.stringify({ deleted }));
   if (deleted.length === 0) {
     console.error(`No committee named "${name}" found - nothing deleted.`);

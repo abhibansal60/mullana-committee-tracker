@@ -66,6 +66,10 @@ export default async function PlayHomePage({ searchParams }: PageProps<"/play">)
     const m = d.members.find((x) => x.memberId === member.id);
     return sum + Math.max(0, (m?.amountOwed ?? 0) - (m?.amountPaid ?? 0));
   }, 0);
+  const monthsOwing = recorded.filter((d) => {
+    const m = d.members.find((x) => x.memberId === member.id);
+    return !!m && m.amountOwed > m.amountPaid;
+  }).length;
   const firstName = member.name.split(" ")[0];
 
   return (
@@ -116,6 +120,46 @@ export default async function PlayHomePage({ searchParams }: PageProps<"/play">)
             here: null,
           }}
         />
+
+        {/* What I owe: the first thing a member checks */}
+        {latest && myLatest && (
+          <section className="card p-5">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <span className="eyebrow">{outstanding > 0 ? "You owe" : "Your payments"}</span>
+                <p
+                  className={`money mt-1 text-3xl font-medium ${
+                    outstanding > 0 ? "text-[var(--stamp)]" : "text-[var(--cloth)]"
+                  }`}
+                >
+                  {outstanding > 0 ? formatRupees(outstanding) : "All paid ✓"}
+                </p>
+                {monthsOwing > 1 && (
+                  <p className="mt-0.5 text-xs text-[var(--muted)]">across {monthsOwing} months</p>
+                )}
+              </div>
+              <StatusBadge status={myLatest.status} />
+            </div>
+            <dl className="mt-4 grid grid-cols-2 gap-3 border-t border-[var(--border-subtle)] pt-4">
+              <div>
+                <dt className="eyebrow">Month {latest.month.monthNumber}</dt>
+                <dd className="money mt-0.5 text-lg">{formatRupees(myLatest.amountOwed)}</dd>
+                <dd className="text-xs text-[var(--muted)]">
+                  {myLatest.amountOwed < committee.monthlyContribution
+                    ? `${formatRupees(committee.monthlyContribution - myLatest.amountOwed)} less than usual`
+                    : "Full contribution"}
+                </dd>
+              </div>
+              <div>
+                <dt className="eyebrow">Paid so far</dt>
+                <dd className="money mt-0.5 text-lg">{formatRupees(totalPaid)}</dd>
+                <dd className="text-xs text-[var(--muted)]">
+                  {recorded.length} month{recorded.length === 1 ? "" : "s"}
+                </dd>
+              </div>
+            </dl>
+          </section>
+        )}
 
         {/* Hero: who I am in this committee */}
         <section className="arena-bg arena-panel p-5">
@@ -177,37 +221,6 @@ export default async function PlayHomePage({ searchParams }: PageProps<"/play">)
           </div>
         </section>
 
-        {/* Money at a glance */}
-        {latest && myLatest && (
-          <section className="card p-5">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <span className="eyebrow">Month {latest.month.monthNumber} · your contribution</span>
-                <p className="money mt-1 text-3xl font-medium">{formatRupees(myLatest.amountOwed)}</p>
-                <p className="mt-1 text-sm text-[var(--muted)]">
-                  {myLatest.amountOwed < committee.monthlyContribution
-                    ? `${formatRupees(committee.monthlyContribution - myLatest.amountOwed)} less than usual`
-                    : "Full contribution"}
-                  {myLatest.amountPaid > 0 && ` · paid ${formatRupees(myLatest.amountPaid)}`}
-                </p>
-              </div>
-              <StatusBadge status={myLatest.status} />
-            </div>
-            <div className="mt-4 grid grid-cols-2 gap-3 border-t border-[var(--border-subtle)] pt-4">
-              <div>
-                <span className="eyebrow">Paid so far</span>
-                <p className="money mt-0.5 text-lg">{formatRupees(totalPaid)}</p>
-              </div>
-              <div>
-                <span className="eyebrow">Outstanding</span>
-                <p className={`money mt-0.5 text-lg ${outstanding > 0 ? "text-[var(--stamp)]" : "text-[var(--cloth)]"}`}>
-                  {outstanding > 0 ? formatRupees(outstanding) : "All clear ✓"}
-                </p>
-              </div>
-            </div>
-          </section>
-        )}
-
         {nextMonth && !session && (
           <section className="card flex items-center gap-4 p-5">
             <span className="text-3xl">🗓️</span>
@@ -255,9 +268,12 @@ export default async function PlayHomePage({ searchParams }: PageProps<"/play">)
 
         {/* My passbook */}
         {recorded.length > 0 && (
-          <section>
-            <h2 className="eyebrow mb-2 px-1">My passbook</h2>
-            <ul className="card divide-y divide-[var(--border-subtle)] px-4">
+          <details className="group">
+            <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between px-1">
+              <span className="eyebrow">My passbook · {recorded.length} month{recorded.length === 1 ? "" : "s"}</span>
+              <span aria-hidden className="text-[var(--muted)] transition-transform group-open:rotate-90">›</span>
+            </summary>
+            <ul className="card mt-1 divide-y divide-[var(--border-subtle)] px-4">
               {recorded.map((d) => {
                 const m = d.members.find((x) => x.memberId === member.id)!;
                 return (
@@ -277,7 +293,7 @@ export default async function PlayHomePage({ searchParams }: PageProps<"/play">)
                 );
               })}
             </ul>
-          </section>
+          </details>
         )}
       </div>
     </div>

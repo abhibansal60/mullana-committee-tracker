@@ -250,6 +250,10 @@ export default function LiveRoom({
     session?.currentBid != null
       ? Math.max(0, Math.floor((session.currentBid - state.committee.runnerUpBonus) / state.committee.memberCount))
       : null;
+  // The host's next button belongs on the first screen: right under the
+  // lobby header or the stage, not below the roster and the bid feed.
+  const hostControls =
+    mode === "host" && hostSlot ? <section className="mt-6">{hostSlot({ state, accept, refresh })}</section> : null;
 
   return (
     <Shell onPointerDown={unlockAudio}>
@@ -359,6 +363,8 @@ export default function LiveRoom({
           <NoRoom mode={mode} hostName={state.hostName} homeHref={homeHref} />
         )}
 
+        {session?.status === "lobby" && hostControls}
+
         {session?.status === "lobby" && (
           <Lobby
             state={state}
@@ -448,6 +454,8 @@ export default function LiveRoom({
           </section>
         )}
 
+        {(session?.status === "live" || session?.status === "paused" || session?.status === "closed") && hostControls}
+
         {session?.status === "finalized" && <Result state={state} mode={mode} homeHref={homeHref} />}
 
         {/* Bid feed */}
@@ -476,9 +484,7 @@ export default function LiveRoom({
           </section>
         )}
 
-        {mode === "host" && hostSlot && (
-          <section className="mt-8">{hostSlot({ state, accept, refresh })}</section>
-        )}
+        {(!session || session.status === "finalized") && hostControls}
       </main>
 
       {/* Bottom dock: reactions + the button */}

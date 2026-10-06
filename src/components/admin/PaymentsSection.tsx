@@ -27,6 +27,9 @@ export default function PaymentsSection({
 
   const remaining = (m: MemberMonthView) => m.amountOwed - m.amountPaid;
   const selectableMembers = membersByName.filter((m) => remaining(m) > 0);
+  const paidMembers = membersByName.filter((m) => remaining(m) <= 0);
+  const totalOwed = members.reduce((sum, m) => sum + m.amountOwed, 0);
+  const stillOut = selectableMembers.reduce((sum, m) => sum + remaining(m), 0);
   const allSelected =
     selectableMembers.length > 0 &&
     selectableMembers.every((m) => selected.has(m.memberId));
@@ -90,67 +93,101 @@ export default function PaymentsSection({
     }
   }
 
+  const row = (m: MemberMonthView) => (
+    <PaymentForm
+      key={m.memberId}
+      monthId={monthId}
+      member={m}
+      selectable={remaining(m) > 0}
+      selected={selected.has(m.memberId)}
+      onToggleSelect={() => toggle(m.memberId)}
+    />
+  );
+
   return (
-    <div>
-      <div className="mb-2 flex items-center justify-between gap-3 px-1">
-        <label className="flex items-center gap-2 text-xs font-medium text-[var(--muted)]">
-          <input
-            type="checkbox"
-            checked={allSelected}
-            onChange={toggleAll}
-            disabled={selectableMembers.length === 0}
-            className="h-4 w-4 accent-[var(--cloth)] disabled:opacity-40"
-          />
-          Select all unpaid ({selectableMembers.length})
-        </label>
-        {selected.size > 0 && (
+    <div className={`space-y-5 ${selected.size > 0 ? "pb-20" : ""}`}>
+      <div className="card p-4">
+        <div className="flex items-baseline justify-between gap-3">
+          <span className="eyebrow">Collected</span>
           <span className="money text-xs text-[var(--muted)]">
-            {selected.size} selected · {formatRupees(selectedTotal)}
+            {paidMembers.length} of {members.length} paid
           </span>
+        </div>
+        <p className="money mt-1 text-2xl font-medium">
+          {formatRupees(totalOwed - stillOut)}
+          <span className="text-base text-[var(--muted)]"> of {formatRupees(totalOwed)}</span>
+        </p>
+        <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[var(--border-subtle)]">
+          <div
+            className="h-full rounded-full bg-[var(--cloth)]"
+            style={{ width: `${totalOwed ? ((totalOwed - stillOut) / totalOwed) * 100 : 0}%` }}
+          />
+        </div>
+        {stillOut > 0 ? (
+          <p className="money mt-2 text-sm text-[var(--stamp)]">{formatRupees(stillOut)} still to collect</p>
+        ) : (
+          <p className="mt-2 text-sm text-[var(--cloth)]">Fully collected ✓</p>
         )}
       </div>
 
-      {selected.size > 0 && (
-        <div className="card mb-3 flex flex-wrap items-center gap-2.5 p-3">
-          <span className="text-sm font-medium">
-            Mark {selected.size} as paid
-          </span>
-          <select
-            value={mode}
-            onChange={(e) => setMode(e.target.value as "cash" | "upi")}
-            className="input w-24 py-1.5 text-xs"
-          >
-            <option value="cash">Cash</option>
-            <option value="upi">UPI</option>
-          </select>
-          <button
-            type="button"
-            onClick={markSelectedPaid}
-            disabled={submitting}
-            className="btn-primary ml-auto px-3.5 py-1.5 text-xs"
-          >
-            {submitting ? "Saving…" : `Mark paid · ${formatRupees(selectedTotal)}`}
-          </button>
-        </div>
-      )}
       {error && (
-        <p className="mb-3 rounded-md border border-[var(--stamp)] bg-[var(--stamp-tint)] p-2.5 text-xs text-[var(--stamp)]">
+        <p className="rounded-md border border-[var(--stamp)] bg-[var(--stamp-tint)] p-2.5 text-xs text-[var(--stamp)]">
           {error}
         </p>
       )}
 
-      <div className="card divide-y divide-[var(--border-subtle)] px-4">
-        {membersByName.map((m) => (
-          <PaymentForm
-            key={m.memberId}
-            monthId={monthId}
-            member={m}
-            selectable={remaining(m) > 0}
-            selected={selected.has(m.memberId)}
-            onToggleSelect={() => toggle(m.memberId)}
-          />
-        ))}
-      </div>
+      {selectableMembers.length > 0 && (
+        <section>
+          <div className="mb-1 flex items-center justify-between gap-3 px-1">
+            <h2 className="eyebrow">To collect · {selectableMembers.length}</h2>
+            <label className="flex min-h-11 cursor-pointer items-center gap-2 text-xs font-medium text-[var(--muted)]">
+              Select all
+              <input
+                type="checkbox"
+                checked={allSelected}
+                onChange={toggleAll}
+                className="h-5 w-5 accent-[var(--cloth)]"
+              />
+            </label>
+          </div>
+          <div className="card divide-y divide-[var(--border-subtle)] px-4">{selectableMembers.map(row)}</div>
+        </section>
+      )}
+
+      {paidMembers.length > 0 && (
+        <section>
+          <h2 className="eyebrow mb-2 px-1">Paid · {paidMembers.length}</h2>
+          <div className="card divide-y divide-[var(--border-subtle)] px-4">{paidMembers.map(row)}</div>
+        </section>
+      )}
+
+      {selected.size > 0 && (
+        <div className="fixed inset-x-0 bottom-[calc(3.5rem+env(safe-area-inset-bottom))] z-30 border-t border-[var(--border-strong)] bg-[var(--surface)] px-4 py-3 shadow-[0_-8px_24px_-12px_#0004] sm:bottom-0">
+          <div className="mx-auto flex max-w-lg items-center gap-2">
+            <span className="money min-w-0 flex-1 text-sm font-medium">
+              {selected.size} selected
+              <span className="block text-xs text-[var(--muted)]">{formatRupees(selectedTotal)}</span>
+            </span>
+            <select
+              value={mode}
+              aria-label="Payment mode"
+              onChange={(e) => setMode(e.target.value as "cash" | "upi")}
+              className="input w-[5.5rem]"
+            >
+              <option value="cash">Cash</option>
+              <option value="upi">UPI</option>
+            </select>
+            <button
+              type="button"
+              onClick={markSelectedPaid}
+              disabled={submitting}
+              className="btn-primary min-h-11"
+            >
+              {submitting ? "Saving…" : "Mark paid"}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

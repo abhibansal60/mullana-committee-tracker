@@ -16,7 +16,7 @@ export default function PracticeBar({
 }) {
   const botCount = state.players.filter((p) => p.bot && (p.eligible || !state.session)).length;
   return (
-    <div className="arena-card mb-4 border-dashed border-[var(--practice-arena)] p-4">
+    <div className="arena-card mt-4 border-dashed border-[var(--practice-arena)] p-4">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-xs font-bold tracking-[0.18em] text-[var(--practice-arena-text)] uppercase">🧪 Practice room</p>
@@ -54,7 +54,7 @@ export default function PracticeBar({
               ↺ Reset &amp; start fresh
             </a>
             <a href={`/admin/${parentAdminToken}`} className="host-button-primary">
-              ✕ Exit practice → real committee
+              ✕ Exit to real committee
             </a>
           </>
         ) : (

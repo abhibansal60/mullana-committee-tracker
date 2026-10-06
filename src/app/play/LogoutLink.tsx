@@ -7,7 +7,7 @@ export default function LogoutLink() {
   return (
     <button
       type="button"
-      className="text-xs text-spine-muted hover:text-spine-foreground"
+      className="min-h-11 px-2 text-xs text-spine-muted hover:text-spine-foreground"
       onClick={async () => {
         if (!window.confirm("Log out on this phone?")) return;
         await fetch("/api/logout", { method: "POST" });

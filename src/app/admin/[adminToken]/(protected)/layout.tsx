@@ -4,6 +4,7 @@ import LogoutButton from "./logout-button";
 import { isPracticeCommittee } from "@/lib/live/rules";
 import { getPracticeParentToken } from "@/lib/live/practice";
 import PracticeBanner from "@/components/admin/PracticeBanner";
+import AdminNav from "@/components/admin/AdminNav";
 
 export default async function ProtectedAdminLayout({
   children,
@@ -20,38 +21,22 @@ export default async function ProtectedAdminLayout({
   return (
     <div className="min-h-full flex flex-col">
       <header className="border-b border-[var(--gold-deep)]/40 bg-spine">
-        <div className="mx-auto flex max-w-lg items-center justify-between gap-3 px-5 py-3.5">
+        <div className="mx-auto flex max-w-3xl items-center justify-between gap-3 px-5 py-2">
           <Link
             href={`/admin/${adminToken}`}
-            className="min-w-0 truncate font-[family-name:var(--font-display)] text-[15px] font-semibold text-spine-foreground"
+            className="flex min-h-11 min-w-0 items-center truncate font-[family-name:var(--font-display)] text-[15px] font-semibold text-spine-foreground"
           >
             {committee.name}
           </Link>
-          <div className="flex shrink-0 items-center gap-3 text-[13px] whitespace-nowrap text-spine-muted">
-            <Link
-              href={`/admin/${adminToken}/live`}
-              className="font-semibold text-[var(--gold)] hover:text-spine-foreground"
-            >
-              Live
-            </Link>
-            <Link
-              href={`/admin/${adminToken}/players`}
-              className="hover:text-spine-foreground"
-            >
-              Players
-            </Link>
-            <Link
-              href={`/admin/${adminToken}/settings`}
-              className="hover:text-spine-foreground"
-            >
-              Settings
-            </Link>
+          <div className="flex shrink-0 items-center gap-2">
+            <AdminNav adminToken={adminToken} placement="header" />
             <LogoutButton adminToken={adminToken} />
           </div>
         </div>
       </header>
       {practice && <PracticeBanner parentAdminToken={parentAdminToken} />}
-      <main className="flex-1">{children}</main>
+      <main className="flex-1 pb-24 sm:pb-10">{children}</main>
+      <AdminNav adminToken={adminToken} placement="bottom" />
     </div>
   );
 }

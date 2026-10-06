@@ -63,9 +63,6 @@ export default function HostConsole({
       }}
       hostSlot={(p) => (
         <>
-          {practice && (
-            <PracticeBar state={p.state} bots={bots} onBotsChange={changeBots} parentAdminToken={parentAdminToken} />
-          )}
           <HostPanel
             {...p}
             adminToken={adminToken}
@@ -74,6 +71,9 @@ export default function HostConsole({
             maxBid={maxBid}
             minOpeningBid={minOpeningBid}
           />
+          {practice && (
+            <PracticeBar state={p.state} bots={bots} onBotsChange={changeBots} parentAdminToken={parentAdminToken} />
+          )}
         </>
       )}
     />
