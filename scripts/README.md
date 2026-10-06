@@ -7,7 +7,8 @@ tokens) every session.
 ## Local test database
 
 ```
-eval "$(scripts/test-db.sh)" && npm test
+npm run test:local                       # .env.local points at a local Postgres (e.g. Docker `committee-pg`)
+eval "$(scripts/test-db.sh)" && npm test # no local Postgres yet: a throwaway one from conda
 ```
 
 The DB-backed tests (`*.test.ts` that import `@/lib/db`) skip unless `DATABASE_URL` points at localhost. `test-db.sh`
@@ -33,42 +34,62 @@ credentials, and the Vercel CLI (`npx vercel`, already logged in via
 
 ## Visual QA (screenshots, click-through checks)
 
-This sandbox has no GPU/display and no root, so `playwright install
---with-deps` doesn't work here - `scripts/qa/setup.sh` downloads the
-missing shared libraries as unprivileged `.deb`s (`apt-get download`
-doesn't need root) and extracts them locally instead of installing them
-system-wide.
-
-```
-scripts/qa/setup.sh          # one-time per environment
-source scripts/qa/env.sh     # every new shell, before using Playwright
-```
-
 Playwright lives in `scripts/qa/` with its own `package.json`, deliberately
 separate from the app's own dependencies - it's QA tooling, not something
 `next build` should ever need to know about.
 
-### Throwaway test committees
+```
+(cd scripts/qa && npm install)   # one-time per checkout
+```
 
-The app's real committee lives in the same database as local dev
-(`DATABASE_URL` in `.env.local`), so don't hand-write SQL against it.
-Instead:
+On mini (a normal Ubuntu desktop) the downloaded Chromium runs as is. Only a sandbox with no
+root and missing system libraries needs `scripts/qa/setup.sh` (downloads the
+shared libraries as unprivileged `.deb`s) and `source scripts/qa/env.sh` in
+every new shell.
+
+In a fresh worktree, install the app's own dependencies with `npm ci`, not
+`npm install`: a different npm version rewrites `package-lock.json`.
+
+### Dev server
+
+The main checkout's dev server usually holds port 3000, so worktrees use
+3417 (the QA scripts' default `BASE_URL`). Start it from the repo root in
+the same command (`cd <repo> && npx next dev -p 3417`): a background command
+that inherits another directory fails with "Couldn't find any `pages` or
+`app` directory".
+
+### Screenshots and click-through: `ux-shots.mjs`
+
+Needs the dev server and a local `DATABASE_URL`; it refuses anything else.
 
 ```
-npm run dev -- -p 3417   # in one terminal
+node --env-file=.env.local scripts/qa/ux-shots.mjs seed            # two "UX QA" committees: fresh, and mid-season
+node --env-file=.env.local scripts/qa/ux-shots.mjs shoot docs/ux/x # every admin, member and practice page, 390px + 1280px
+node --env-file=.env.local scripts/qa/ux-shots.mjs check           # clicks through key flows; records one payment
+node --env-file=.env.local scripts/qa/ux-shots.mjs cleanup         # deletes every "UX QA" committee and practice copy
+python3 scripts/qa/shrink.py docs/ux/x                             # palette-quantize before committing PNGs
+```
 
+`check` asserts the committee-day button, Start bidding, Enter the auction
+room and You owe are on the first phone screen, and that the practice room's
+Exit and Reset links point at the right places. Run it after any layout
+change.
+
+Before/after on identical data: `seed`, then commit your work, put the old
+UI back with `git checkout <base> -- src`, move aside any files that are new
+since `<base>`, run `shoot docs/ux/before`, restore with
+`git checkout HEAD -- src`, then run `shoot docs/ux/after`. Shoot `before`
+first, because `check` changes the data.
+
+### One throwaway committee: `fixture.mjs`
+
+```
 node --env-file=.env.local scripts/qa/fixture.mjs create "QA Committee"
 # -> prints admin/member URLs, tokens, and PIN as JSON
 
 node --env-file=.env.local scripts/qa/fixture.mjs delete "QA Committee"
 # -> ALWAYS run this once you're done looking; matches by exact name only
 ```
-
-Then drive it with Playwright directly (see git history for `scripts/qa/`
-commits around the redesign/P&L work for example scripts that log in,
-record an auction, add payments, and screenshot at mobile/desktop widths
-in both color schemes) - there wasn't enough of a stable pattern yet to
-lock into one more reusable script beyond fixture creation itself.
 
 ## Notes for future sessions
 
