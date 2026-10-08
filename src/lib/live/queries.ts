@@ -497,7 +497,6 @@ export type HostAction =
   | { action: "start" }
   | { action: "pause" }
   | { action: "resume" }
-  | { action: "extend" }
   | { action: "hammer" }
   | { action: "undo" }
   | { action: "reopen" }
@@ -545,21 +544,6 @@ export async function runHostAction(committee: Committee, input: HostAction): Pr
         sql`${auctionSessions.status} = 'paused'`
       );
       return;
-    }
-    case "extend": {
-      if (status === "live" && s.roundEndsAt) {
-        await bumpSession(
-          s.id,
-          { roundEndsAt: sql`${auctionSessions.roundEndsAt} + interval '10 seconds'` },
-          sql`${auctionSessions.status} = 'live'`
-        );
-        return;
-      }
-      if (status === "paused" && s.pausedRemainingMs != null) {
-        await bumpSession(s.id, { pausedRemainingMs: s.pausedRemainingMs + 10_000 });
-        return;
-      }
-      throw new LiveError("The clock isn't running");
     }
     case "hammer": {
       if (status !== "live" && status !== "paused") throw new LiveError("Nothing to sell right now");
@@ -690,8 +674,7 @@ export async function placeBid(
   if (!open) throw new LiveError("No auction is running", 404);
   const s = await settleClock(open);
   if (s.status === "lobby") throw new LiveError("Bidding hasn't started yet");
-  if (s.status === "paused") throw new LiveError("Bidding is paused");
-  if (s.status !== "live") throw new LiveError("Bidding is closed");
+  if (s.status !== "live" && s.status !== "paused") throw new LiveError("Bidding is closed");
   if (s.startsAt && s.startsAt.getTime() > Date.now()) throw new LiveError("Wait for the countdown!");
   if (s.leaderMemberId === memberId) throw new LiveError("You're already the highest bidder");
 
@@ -708,7 +691,8 @@ export async function placeBid(
 
   // One atomic statement: the session only moves if nobody else got there
   // first (current_bid unchanged, clock still running), and the bid is only
-  // logged if the session moved. SET expressions see the pre-update row, so
+  // logged if the session moved. While paused, a bid relights the fuse but
+  // the clock stays frozen until the holder resumes. SET expressions see the pre-update row, so
   // the old leader becomes the runner-up.
   const result = await db.execute(sql`
     with moved as (
@@ -720,10 +704,13 @@ export async function placeBid(
         leader_member_id = ${memberId},
         bid_count = bid_count + 1,
         version = version + 1,
-        round_ends_at = now() + make_interval(secs => round_seconds),
+        round_ends_at = case when status = 'live'
+          then now() + make_interval(secs => round_seconds) else null end,
+        paused_remaining_ms = case when status = 'paused'
+          then round_seconds * 1000 else null end,
         updated_at = now()
       where id = ${s.id}
-        and status = 'live'
+        and status in ('live', 'paused')
         and (starts_at is null or starts_at <= now())
         and (round_ends_at is null or round_ends_at > now())
         and current_bid is not distinct from ${expectedBid}::integer

@@ -661,13 +661,6 @@ function BidDock({
       </p>
     );
   }
-  if (session.status === "paused") {
-    return (
-      <p className="rounded-2xl bg-[var(--arena-raised)] px-4 py-4 text-center text-sm font-semibold">
-        ⏸ Paused by {state.hostName}
-      </p>
-    );
-  }
   if (me.isLeader) {
     return (
       <div className="animate-glow rounded-2xl bg-[var(--arena-raised)] px-4 py-4 text-center">

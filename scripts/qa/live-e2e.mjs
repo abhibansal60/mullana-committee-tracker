@@ -141,16 +141,15 @@ assert(r.status === 409, "stale expected -> 409: " + r.data.error);
 r = await play("Karan", "POST", "/api/play/bid", { expectedBid: 12000, amount: 12500 });
 assert(r.status === 200, "Karan bids 12500");
 
-// Pause/resume/extend
+// Pause/resume: pause freezes the clock only, bidding stays open
 r = await admin("POST", "/live", { action: "pause" });
 assert(r.data.state.session.status === "paused" && r.data.state.session.pausedRemainingMs > 0, "paused");
 r = await play("Rahul", "POST", "/api/play/bid", { expectedBid: 12500, amount: 13000 });
-assert(r.status === 400, "bid while paused: " + r.data.error);
-r = await admin("POST", "/live", { action: "extend" });
+assert(r.status === 200, "bid while paused: " + r.data?.error);
+r = await admin("GET", "/live");
+assert(r.data.session.status === "paused" && r.data.session.roundEndsAt == null && r.data.session.currentBid === 13000, "still paused, clock frozen, bid recorded");
 r = await admin("POST", "/live", { action: "resume" });
 assert(r.data.state.session.status === "live", "resumed");
-r = await play("Rahul", "POST", "/api/play/bid", { expectedBid: 12500, amount: 13000 });
-assert(r.status === 200, "Rahul bids 13000");
 r = await admin("POST", "/live", { action: "undo" });
 assert(r.data.state.session.currentBid === 12500 && r.data.state.session.leaderId === players.find(p => p.name === "Karan").id, "undo restores Karan @12500");
 r = await play("Rahul", "POST", "/api/play/bid", { expectedBid: 12500, amount: 13000 });

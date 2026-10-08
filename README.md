@@ -40,7 +40,7 @@ bid live from the app on auction day.
    the auction room**. Members' home screens light up and they drop into a
    lobby where everyone can see who's joined.
 3. **Start bidding** - a 3-2-1 countdown, then bidding opens. Host controls:
-   pause/resume, +10s, SOLD now, undo last bid (mistaken taps), cancel.
+   pause/resume (freezes the clock, bidding stays open), SOLD now, undo last bid (mistaken taps), cancel.
 4. When the fuse burns out it's SOLD. **Confirm & record** writes the
    winner, bid and runner-up into the month exactly as the manual auction
    form would; payments are collected from the dashboard as before.
