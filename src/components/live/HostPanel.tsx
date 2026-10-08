@@ -274,7 +274,7 @@ export default function HostPanel({
         </div>
       )}
 
-      {status === "live" && s && (
+      {(status === "live" || status === "paused") && s && (
         <div className="mb-3 rounded-xl border border-[var(--arena-line)] p-3">
           <p className="text-xs font-semibold tracking-[0.18em] text-[var(--arena-muted)] uppercase">Bid for a member</p>
           {bidForOptions.length === 0 || s.jumpOptions.length === 0 ? (
@@ -313,17 +313,14 @@ export default function HostPanel({
       {(status === "live" || status === "paused") && (
         <div className="grid grid-cols-2 gap-2">
           {status === "live" ? (
-            <button type="button" className="host-button" disabled={!!busy} onClick={() => act("pause")}>
+            <button type="button" className="host-button col-span-2" disabled={!!busy} onClick={() => act("pause")}>
               ⏸ Pause
             </button>
           ) : (
-            <button type="button" className="host-button-primary" disabled={!!busy} onClick={() => act("resume")}>
+            <button type="button" className="host-button-primary col-span-2" disabled={!!busy} onClick={() => act("resume")}>
               ▶ Resume
             </button>
           )}
-          <button type="button" className="host-button" disabled={!!busy} onClick={() => act("extend")}>
-            +10s
-          </button>
           <button
             type="button"
             className="host-button col-span-2 border-[var(--ember)] text-[var(--ember)]"

@@ -26,7 +26,6 @@ const actionSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("start") }),
   z.object({ action: z.literal("pause") }),
   z.object({ action: z.literal("resume") }),
-  z.object({ action: z.literal("extend") }),
   z.object({ action: z.literal("hammer") }),
   z.object({ action: z.literal("undo") }),
   z.object({ action: z.literal("reopen") }),
