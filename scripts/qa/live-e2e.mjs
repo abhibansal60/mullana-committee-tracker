@@ -5,8 +5,7 @@
 // five-way simultaneous opening-bid race, pause/undo, the fuse running out,
 // finalizing (dues checked against the formula) and access revocation.
 //
-//   npm run dev -- -p 3417
-//   SETUP_PASSPHRASE=... node scripts/qa/live-e2e.mjs
+//   npm run e2e:live   (starts and stops its own Postgres and dev server)
 import fs from "node:fs";
 const B = process.env.BASE_URL || "http://localhost:3417";
 if (!/localhost|127\.0\.0\.1/.test(B)) { console.error("Refusing to run against a non-local server"); process.exit(1); }
