@@ -15,6 +15,15 @@ The DB-backed tests (`*.test.ts` that import `@/lib/db`) skip unless `DATABASE_U
 starts a throwaway Postgres 17 from conda in `/tmp` on a free port, pushes the schema, and prints the env to export.
 `scripts/test-db.sh stop` stops it.
 
+### Live auction e2e
+
+```
+npm run e2e:live
+```
+
+One command: throwaway Postgres (`test-db.sh`), dev server on a free port, `scripts/qa/live-e2e.mjs`, then both stop.
+Prints `ALL GOOD` on success. Run it after any change under `src/lib/live/` or `src/components/live/`.
+
 ## Deploying
 
 ```
