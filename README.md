@@ -1,10 +1,10 @@
 # Committee Tracker
 
-A lightweight tracker for a bidding chit fund ("committee") run among
-a group of friends: monthly auction results, cash/UPI payment tracking, and a
-per-month ledger. Built for infrequent use (once or twice a month) with two
-access levels - a read-only shared link for members, and a PIN-protected
-admin link for the committee holder.
+A shared ledger for a monthly savings group run among friends: who has paid
+in, by cash or UPI, and a running record for every month. Built for
+infrequent use (once or twice a month) with two access levels - a read-only
+shared link for members, and a PIN-protected admin link for the group's
+organiser.
 
 ## Stack
 
